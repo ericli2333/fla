@@ -126,6 +126,90 @@ struct fla_content load_fla_file(const string &file_path)
   return ret;
 }
 // End file reading
+
+// Start PDA parsing
+namespace pda {
+enum PDA_STATEMENT_TYPE
+{
+  STATES,
+  INPUT_ALPHABET,
+  STACK_SYMBOLS,
+  INITIAL_STATE,
+  STACK_INITIAL_SYMBOL,
+  FINAL_STATES,
+  TRANSITION
+};
+struct PDA_STATEMENT
+{
+  PDA_STATEMENT_TYPE type;
+  string             content;
+};
+
+struct PDA_STATEMENT get_statement(string &input)
+{
+  struct PDA_STATEMENT ret;
+  if (input[0] == '#') {
+    // Here is the first six cases
+    switch (input[1]) {
+      case 'Q':
+        ret.type    = STATES;
+        ret.content = input.substr(5);
+        break;
+      case 'S':
+        ret.type    = INPUT_ALPHABET;
+        ret.content = input.substr(5);
+        break;
+      case 'G':
+        ret.type    = STACK_SYMBOLS;
+        ret.content = input.substr(5);
+        break;
+      case 'q':
+        if (input[2] != '0') {
+          throw runtime_error("Invalid statement");
+        }
+        ret.type    = INITIAL_STATE;
+        ret.content = input.substr(6);
+        break;
+      case 'z':
+        if (input[2] != '0') {
+          throw runtime_error("Invalid statement");
+        }
+        ret.type    = STACK_INITIAL_SYMBOL;
+        ret.content = input.substr(6);
+        break;
+      case 'F':
+        ret.type    = FINAL_STATES;
+        ret.content = input.substr(5);
+        break;
+      default: throw runtime_error("Invalid statement");
+    }
+  } else {
+    ret.type    = TRANSITION;
+    ret.content = input;
+  }
+  return ret;
+}
+
+void parse_pda(string &input, Logger &logger)
+{
+  logger << "Start parsing pdas" << endl;
+  stringstream ss(input);
+  string       line;
+  while (getline(ss, line, '\n')) {
+    size_t pos = line.find(';');
+    if (pos != string::npos) {
+      line = line.substr(0, pos);
+    }
+    line.erase(line.find_last_not_of(" \n\r\t") + 1);
+    line.erase(0, line.find_first_not_of(" \n\r\t"));
+    if (!line.empty()) {
+      logger << line << endl;
+    }
+  }
+}
+};  // namespace pda
+// End PDA parsing
+
 int main(int argc, char *argv[])
 {
   Logger debug_logger;
@@ -140,13 +224,16 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
+  struct fla_content content;
   try {
-    struct fla_content content = load_fla_file(args.file_path);
+    content = load_fla_file(args.file_path);
     debug_logger << "File type: " << content.type << "\nFile content: " << content.content << endl;
 
   } catch (const exception &e) {
     cerr << "Error: " << e.what() << endl;
     exit(EXIT_FAILURE);
   }
+
+  pda::parse_pda(content.content, debug_logger);
   return 0;
 }
