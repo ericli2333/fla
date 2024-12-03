@@ -1,4 +1,5 @@
 #include <iostream>
+#include <list>
 #include <string>
 #include <stdexcept>
 #include <fstream>
@@ -233,10 +234,10 @@ private:
     PDA_STATE &operator=(const PDA_STATE &other) = default;
     PDA_STATE(PDA_STATE &&other)                 = default;
     void set_accept(bool value) { is_accept = value; }
-    void add_transition(char input, const string &state_name, unordered_map<string, PDA_STATE> &state_list)
+    void add_transition(char input, const string &state_name, unordered_map<string, PDA_STATE> &state_map)
     {
-      auto it = state_list.find(state_name);
-      if (it == state_list.end()) {
+      auto it = state_map.find(state_name);
+      if (it == state_map.end()) {
         string error = "State not found: " + state_name;
         throw runtime_error(error);
       }
@@ -267,10 +268,13 @@ private:
 private:
   bool create_state(string &name, bool is_accept)
   {
-    if (state_list.find(name) != state_list.end()) {
+    if (state_map.find(name) != state_map.end()) {
       return false;
     }
-    state_list[name] = PDA_STATE(name, is_accept);
+    state_list.emplace_back(name, is_accept);
+    auto it = state_list.end();
+    it--;
+    state_map[name] = it;
     return true;
   }
 
@@ -279,7 +283,7 @@ private:
   {
     logger << "ALL parsed States:" << endl;
     for (auto &state : state_list) {
-      logger << state.second.to_string() << endl;
+      logger << state.to_string() << endl;
     }
     logger << endl;
   }
@@ -371,10 +375,11 @@ private:
   }
 
 private:
-  Logger       logger;
-  vector<char> input_alphabet;
-  vector<char> stack_alphabet;
-  unordered_map<string, PDA_STATE> state_list;
+  Logger                                           logger;
+  vector<char>                                     input_alphabet;
+  vector<char>                                     stack_alphabet;
+  list<PDA_STATE>                                  state_list;
+  unordered_map<string, list<PDA_STATE>::iterator> state_map;
 
 public:
   PDA_Wrapper(Logger logger_) : logger(logger_) {};
