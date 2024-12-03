@@ -136,194 +136,255 @@ struct fla_content load_fla_file(const string &file_path)
 
 // Start PDA parsing
 namespace pda {
-enum PDA_STATEMENT_TYPE
-{
-  STATES,
-  INPUT_ALPHABET,
-  STACK_SYMBOLS,
-  INITIAL_STATE,
-  STACK_INITIAL_SYMBOL,
-  FINAL_STATES,
-  TRANSITION
-};
-struct PDA_STATEMENT;
 
-struct PDA_STATEMENT
-{
-  PDA_STATEMENT_TYPE type;
-  string             content;
-};
-
-class PDA_STATE;
-
-void print_pda_statement(struct PDA_STATEMENT &statement, Logger &logger)
-{
-  switch (statement.type) {
-    case STATES: logger << "States: " << statement.content << endl; break;
-    case INPUT_ALPHABET: logger << "Input Alphabet: " << statement.content << endl; break;
-    case STACK_SYMBOLS: logger << "Stack Symbols: " << statement.content << endl; break;
-    case INITIAL_STATE: logger << "Initial State: " << statement.content << endl; break;
-    case STACK_INITIAL_SYMBOL: logger << "Stack Initial Symbol: " << statement.content << endl; break;
-    case FINAL_STATES: logger << "Final States: " << statement.content << endl; break;
-    case TRANSITION: logger << "Transition: " << statement.content << endl; break;
-    default: logger << "Unknown statement type" << endl; break;
-  }
-}
-
-struct PDA_STATEMENT get_statement(string &input)
-{
-  struct PDA_STATEMENT ret;
-  if (input[0] == '#') {
-    // Here is the first six cases
-    switch (input[1]) {
-      case 'Q':
-        ret.type    = STATES;
-        ret.content = input.substr(5);
-        break;
-      case 'S':
-        ret.type    = INPUT_ALPHABET;
-        ret.content = input.substr(5);
-        break;
-      case 'G':
-        ret.type    = STACK_SYMBOLS;
-        ret.content = input.substr(5);
-        break;
-      case 'q':
-        if (input[2] != '0') {
-          throw runtime_error("Invalid statement");
-        }
-        ret.type    = INITIAL_STATE;
-        ret.content = input.substr(6);
-        break;
-      case 'z':
-        if (input[2] != '0') {
-          throw runtime_error("Invalid statement");
-        }
-        ret.type    = STACK_INITIAL_SYMBOL;
-        ret.content = input.substr(6);
-        break;
-      case 'F':
-        ret.type    = FINAL_STATES;
-        ret.content = input.substr(5);
-        break;
-      default: throw runtime_error("Invalid statement");
-    }
-  } else {
-    ret.type    = TRANSITION;
-    ret.content = input;
-  }
-  return ret;
-}
-
-unordered_map<string, PDA_STATE> state_list;
-class PDA_STATE
+class PDA_Wrapper
 {
 private:
-  string                           name;
-  bool                             is_accept;
-  unordered_map<char, PDA_STATE *> transitions;
+  enum PDA_STATEMENT_TYPE
+  {
+    STATES,
+    INPUT_ALPHABET,
+    STACK_SYMBOLS,
+    INITIAL_STATE,
+    STACK_INITIAL_SYMBOL,
+    FINAL_STATES,
+    TRANSITION
+  };
+  struct PDA_STATEMENT;
+
+  struct PDA_STATEMENT
+  {
+    PDA_STATEMENT_TYPE type;
+    string             content;
+  };
+  class PDA_STATE;
+
+  void print_pda_statement(struct PDA_STATEMENT &statement, Logger &logger)
+  {
+    switch (statement.type) {
+      case STATES: logger << "States: " << statement.content << endl; break;
+      case INPUT_ALPHABET: logger << "Input Alphabet: " << statement.content << endl; break;
+      case STACK_SYMBOLS: logger << "Stack Symbols: " << statement.content << endl; break;
+      case INITIAL_STATE: logger << "Initial State: " << statement.content << endl; break;
+      case STACK_INITIAL_SYMBOL: logger << "Stack Initial Symbol: " << statement.content << endl; break;
+      case FINAL_STATES: logger << "Final States: " << statement.content << endl; break;
+      case TRANSITION: logger << "Transition: " << statement.content << endl; break;
+      default: logger << "Unknown statement type" << endl; break;
+    }
+  }
+
+  struct PDA_STATEMENT get_statement(string &input)
+  {
+    struct PDA_STATEMENT ret;
+    if (input[0] == '#') {
+      // Here is the first six cases
+      switch (input[1]) {
+        case 'Q':
+          ret.type    = STATES;
+          ret.content = input.substr(5);
+          break;
+        case 'S':
+          ret.type    = INPUT_ALPHABET;
+          ret.content = input.substr(5);
+          break;
+        case 'G':
+          ret.type    = STACK_SYMBOLS;
+          ret.content = input.substr(5);
+          break;
+        case 'q':
+          if (input[2] != '0') {
+            throw runtime_error("Invalid statement");
+          }
+          ret.type    = INITIAL_STATE;
+          ret.content = input.substr(6);
+          break;
+        case 'z':
+          if (input[2] != '0') {
+            throw runtime_error("Invalid statement");
+          }
+          ret.type    = STACK_INITIAL_SYMBOL;
+          ret.content = input.substr(6);
+          break;
+        case 'F':
+          ret.type    = FINAL_STATES;
+          ret.content = input.substr(5);
+          break;
+        default: throw runtime_error("Invalid statement");
+      }
+    } else {
+      ret.type    = TRANSITION;
+      ret.content = input;
+    }
+    return ret;
+  }
+
+private:
+  class PDA_STATE
+  {
+  private:
+    string                           name;
+    bool                             is_accept;
+    unordered_map<char, PDA_STATE *> transitions;
+
+  public:
+    PDA_STATE(string name, bool is_accept) : name(name), is_accept(is_accept) {};
+    PDA_STATE() {};
+    PDA_STATE(const PDA_STATE &other)            = default;
+    PDA_STATE &operator=(const PDA_STATE &other) = default;
+    PDA_STATE(PDA_STATE &&other)                 = default;
+    void set_accept(bool value) { is_accept = value; }
+    void add_transition(char input, const string &state_name, unordered_map<string, PDA_STATE> &state_list)
+    {
+      auto it = state_list.find(state_name);
+      if (it == state_list.end()) {
+        string error = "State not found: " + state_name;
+        throw runtime_error(error);
+      }
+      transitions[input] = &it->second;
+    }
+    pair<bool, PDA_STATE *> get_transition(char input)
+    {
+      pair<bool, PDA_STATE *> ret(false, this);
+      auto                    it = transitions.find(input);
+      if (it == transitions.end()) {
+        return ret;
+      } else {
+        ret.first  = true;
+        ret.second = it->second;
+        return ret;
+      }
+    }
+    string to_string()
+    {
+      string ret;
+      ret += name;
+      ret += " ";
+      ret += is_accept ? "accept" : "normal";
+      return ret;
+    }
+  };
+
+private:
+  bool create_state(string &name, bool is_accept)
+  {
+    if (state_list.find(name) != state_list.end()) {
+      return false;
+    }
+    state_list[name] = PDA_STATE(name, is_accept);
+    return true;
+  }
+
+private:
+  void print_states(Logger &logger)
+  {
+    logger << "ALL parsed States:" << endl;
+    for (auto &state : state_list) {
+      logger << state.second.to_string() << endl;
+    }
+    logger << endl;
+  }
+
+private:
+  // parsing the content start
+  void parse_pda_statement(struct pda::PDA_Wrapper::PDA_STATEMENT &statement, Logger &logger)
+  {
+    switch (statement.type) {
+      case STATES: {
+        string       true_content = statement.content.substr(1, statement.content.size() - 2);
+        stringstream ss(true_content);
+        string       state;
+        while (getline(ss, state, ',')) {
+          bool success = create_state(state, false);
+          if (!success) {
+            string error = "State already exists: " + state;
+            throw runtime_error(error);
+          }
+        }
+        print_states(logger);
+        break;
+      }
+      case INPUT_ALPHABET: {
+        string       true_content = statement.content.substr(1, statement.content.size() - 2);
+        stringstream ss(true_content);
+        string       character;
+        while (getline(ss, character, ',')) {
+          if (character.size() != 1) {
+            string error = "Invalid character: " + character;
+            throw runtime_error(error);
+          }
+          input_alphabet.push_back(character[0]);
+        }
+        logger << "Input Alphabet paresed: ";
+        for (char ch : input_alphabet) {
+          logger << ch << " ";
+        }
+        logger << endl;
+        break;
+      }
+      case STACK_SYMBOLS: {
+        string       true_content = statement.content.substr(1, statement.content.size() - 2);
+        stringstream ss(true_content);
+        string       character;
+        while (getline(ss, character, ',')) {
+          if (character.size() != 1) {
+            string error = "Invalid character: " + character;
+            throw runtime_error(error);
+          }
+          stack_alphabet.push_back(character[0]);
+        }
+        logger << "Stack Alphabet paresed: ";
+        for (char ch : stack_alphabet) {
+          logger << ch << " ";
+        }
+        logger << endl;
+        break;
+      }
+      case INITIAL_STATE: break;
+      case STACK_INITIAL_SYMBOL: break;
+      case FINAL_STATES: break;
+      case TRANSITION: break;
+      default: break;
+    }
+  }
+
+  // parsing the statement end
+
+private:
+  // input the content and creat a pda
+  void parse_pda(string &input, Logger &logger)
+  {
+    stringstream ss(input);
+    string       line;
+    while (getline(ss, line, '\n')) {
+      size_t pos = line.find(';');
+      if (pos != string::npos) {
+        line = line.substr(0, pos);
+      }
+      line.erase(line.find_last_not_of(" \n\r\t") + 1);
+      line.erase(0, line.find_first_not_of(" \n\r\t"));
+      if (!line.empty()) {
+        struct pda::PDA_Wrapper::PDA_STATEMENT statement = pda::PDA_Wrapper::get_statement(line);
+        pda::PDA_Wrapper::print_pda_statement(statement, logger);
+        parse_pda_statement(statement, logger);
+      }
+    }
+  }
+
+private:
+  Logger       logger;
+  vector<char> input_alphabet;
+  vector<char> stack_alphabet;
+  unordered_map<string, PDA_STATE> state_list;
 
 public:
-  PDA_STATE(string name, bool is_accept) : name(name), is_accept(is_accept) {};
-  PDA_STATE() {};
-  PDA_STATE(const PDA_STATE &other)            = default;
-  PDA_STATE &operator=(const PDA_STATE &other) = default;
-  PDA_STATE(PDA_STATE &&other)                 = default;
-  void set_accept(bool value) { is_accept = value; }
-  void add_transition(char input, const string &state_name)
+  PDA_Wrapper(Logger logger_) : logger(logger_) {};
+  bool create_pda(string &pda_content)
   {
-    auto it = state_list.find(state_name);
-    if (it == state_list.end()) {
-      string error = "State not found: " + state_name;
-      throw runtime_error(error);
-    }
-    transitions[input] = &it->second;
-  }
-  pair<bool, PDA_STATE *> get_transition(char input)
-  {
-    pair<bool, PDA_STATE *> ret(false, this);
-    auto                    it = transitions.find(input);
-    if (it == transitions.end()) {
-      return ret;
-    } else {
-      ret.first  = true;
-      ret.second = it->second;
-      return ret;
-    }
-  }
-  string to_string()
-  {
-    string ret;
-    ret += name;
-    ret += " ";
-    ret += is_accept ? "accept" : "normal";
-    return ret;
+    parse_pda(pda_content, logger);
+    return true;
   }
 };
 
-bool create_state(string &name, bool is_accept)
-{
-  if (state_list.find(name) != state_list.end()) {
-    return false;
-  }
-  state_list[name] = PDA_STATE(name, is_accept);
-  return true;
-}
-
-void print_states(Logger &logger)
-{
-  logger << "ALL States:" << endl;
-  for (auto &state : state_list) {
-    logger << state.second.to_string() << endl;
-  }
-  logger << endl;
-}
-
-void parse_pda_statement(struct pda::PDA_STATEMENT &statement, Logger &logger)
-{
-  switch (statement.type) {
-    case STATES: {
-      string       true_content = statement.content.substr(1, statement.content.size() - 2);
-      stringstream ss(true_content);
-      string       state;
-      while (getline(ss, state, ',')) {
-        bool success = create_state(state, false);
-        if (!success) {
-          string error = "State already exists: " + state;
-          throw runtime_error(error);
-        }
-      }
-      break;
-    }
-    case INPUT_ALPHABET: break;
-    case STACK_SYMBOLS: break;
-    case INITIAL_STATE: break;
-    case STACK_INITIAL_SYMBOL: break;
-    case FINAL_STATES: break;
-    case TRANSITION: break;
-    default: break;
-  }
-}
-
-void parse_pda(string &input, Logger &logger)
-{
-  logger << "Start parsing pdas" << endl;
-  stringstream ss(input);
-  string       line;
-  while (getline(ss, line, '\n')) {
-    size_t pos = line.find(';');
-    if (pos != string::npos) {
-      line = line.substr(0, pos);
-    }
-    line.erase(line.find_last_not_of(" \n\r\t") + 1);
-    line.erase(0, line.find_first_not_of(" \n\r\t"));
-    if (!line.empty()) {
-      struct pda::PDA_STATEMENT statement = pda::get_statement(line);
-      pda::print_pda_statement(statement, logger);
-      parse_pda_statement(statement, logger);
-    }
-  }
-}
 };  // namespace pda
 // End PDA parsing
 
@@ -351,6 +412,7 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  pda::parse_pda(content.content, debug_logger);
+  pda::PDA_Wrapper wrapper(debug_logger);
+  wrapper.create_pda(content.content);
   return 0;
 }
