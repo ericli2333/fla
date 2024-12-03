@@ -1,6 +1,12 @@
 #include <iostream>
+#include <string>
+#include <stdexcept>
+#include <fstream>
+#include <map>
+#include <unordered_map>
 #include <sstream>
 #include <cstring>
+#include <vector>
 using namespace std;
 
 class Logger
@@ -140,11 +146,15 @@ enum PDA_STATEMENT_TYPE
   FINAL_STATES,
   TRANSITION
 };
+struct PDA_STATEMENT;
+
 struct PDA_STATEMENT
 {
   PDA_STATEMENT_TYPE type;
   string             content;
 };
+
+class PDA_STATE;
 
 void print_pda_statement(struct PDA_STATEMENT &statement, Logger &logger)
 {
@@ -205,6 +215,96 @@ struct PDA_STATEMENT get_statement(string &input)
   return ret;
 }
 
+unordered_map<string, PDA_STATE> state_list;
+class PDA_STATE
+{
+private:
+  string                           name;
+  bool                             is_accept;
+  unordered_map<char, PDA_STATE *> transitions;
+
+public:
+  PDA_STATE(string name, bool is_accept) : name(name), is_accept(is_accept) {};
+  PDA_STATE() {};
+  PDA_STATE(const PDA_STATE &other)            = default;
+  PDA_STATE &operator=(const PDA_STATE &other) = default;
+  PDA_STATE(PDA_STATE &&other)                 = default;
+  void set_accept(bool value) { is_accept = value; }
+  void add_transition(char input, const string &state_name)
+  {
+    auto it = state_list.find(state_name);
+    if (it == state_list.end()) {
+      string error = "State not found: " + state_name;
+      throw runtime_error(error);
+    }
+    transitions[input] = &it->second;
+  }
+  pair<bool, PDA_STATE *> get_transition(char input)
+  {
+    pair<bool, PDA_STATE *> ret(false, this);
+    auto                    it = transitions.find(input);
+    if (it == transitions.end()) {
+      return ret;
+    } else {
+      ret.first  = true;
+      ret.second = it->second;
+      return ret;
+    }
+  }
+  string to_string()
+  {
+    string ret;
+    ret += name;
+    ret += " ";
+    ret += is_accept ? "accept" : "normal";
+    return ret;
+  }
+};
+
+bool create_state(string &name, bool is_accept)
+{
+  if (state_list.find(name) != state_list.end()) {
+    return false;
+  }
+  state_list[name] = PDA_STATE(name, is_accept);
+  return true;
+}
+
+void print_states(Logger &logger)
+{
+  logger << "ALL States:" << endl;
+  for (auto &state : state_list) {
+    logger << state.second.to_string() << endl;
+  }
+  logger << endl;
+}
+
+void parse_pda_statement(struct pda::PDA_STATEMENT &statement, Logger &logger)
+{
+  switch (statement.type) {
+    case STATES: {
+      string       true_content = statement.content.substr(1, statement.content.size() - 2);
+      stringstream ss(true_content);
+      string       state;
+      while (getline(ss, state, ',')) {
+        bool success = create_state(state, false);
+        if (!success) {
+          string error = "State already exists: " + state;
+          throw runtime_error(error);
+        }
+      }
+      break;
+    }
+    case INPUT_ALPHABET: break;
+    case STACK_SYMBOLS: break;
+    case INITIAL_STATE: break;
+    case STACK_INITIAL_SYMBOL: break;
+    case FINAL_STATES: break;
+    case TRANSITION: break;
+    default: break;
+  }
+}
+
 void parse_pda(string &input, Logger &logger)
 {
   logger << "Start parsing pdas" << endl;
@@ -218,8 +318,9 @@ void parse_pda(string &input, Logger &logger)
     line.erase(line.find_last_not_of(" \n\r\t") + 1);
     line.erase(0, line.find_first_not_of(" \n\r\t"));
     if (!line.empty()) {
-      struct PDA_STATEMENT statement = get_statement(line);
-      print_pda_statement(statement, logger);
+      struct pda::PDA_STATEMENT statement = pda::get_statement(line);
+      pda::print_pda_statement(statement, logger);
+      parse_pda_statement(statement, logger);
     }
   }
 }
