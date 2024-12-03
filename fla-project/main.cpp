@@ -1,5 +1,6 @@
 #include <iostream>
 #include <list>
+#include <stack>
 #include <string>
 #include <stdexcept>
 #include <fstream>
@@ -343,9 +344,38 @@ private:
         logger << endl;
         break;
       }
-      case INITIAL_STATE: break;
-      case STACK_INITIAL_SYMBOL: break;
-      case FINAL_STATES: break;
+      case INITIAL_STATE: {
+        initial_state = state_map[statement.content];
+        logger << "parsed Initial state: " << initial_state->to_string() << endl;
+        break;
+      }
+      case STACK_INITIAL_SYMBOL: {
+        for (int idx = statement.content.length() - 1; idx >= 0; idx--) {
+          pda_stack.push(statement.content[idx]);
+        }
+        logger << "parsed Stack Initial Symbol: ";
+        while (!pda_stack.empty()) {
+          logger << pda_stack.top() << endl;
+          pda_stack.pop();
+        }
+
+        break;
+      }
+      case FINAL_STATES: {
+        string       true_content = statement.content.substr(1, statement.content.size() - 2);
+        stringstream ss(true_content);
+        string       str;
+        while (getline(ss, str, ',')) {
+          auto it = state_map.find(str);
+          if (it == state_map.end()) {
+            string error = "State not found: " + str;
+            throw runtime_error(error);
+          }
+          it->second->set_accept(true);
+        }
+        print_states(logger);
+        break;
+      }
       case TRANSITION: break;
       default: break;
     }
@@ -380,6 +410,9 @@ private:
   vector<char>                                     stack_alphabet;
   list<PDA_STATE>                                  state_list;
   unordered_map<string, list<PDA_STATE>::iterator> state_map;
+  list<PDA_STATE>::iterator                        initial_state;
+  list<PDA_STATE>::iterator                        current_state;
+  stack<char>                                      pda_stack;
 
 public:
   PDA_Wrapper(Logger logger_) : logger(logger_) {};
