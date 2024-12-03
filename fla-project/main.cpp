@@ -96,8 +96,12 @@ int main(int argc, char *argv[])
   Logger logger;
   logger.setLogToStderr(true);
 
-  struct Args args = parse_args(argc, argv, logger);
-  print_args(args, logger);
-  logger << "This is for testing" << endl;
+  try {
+    struct Args args = parse_args(argc, argv, logger);
+    print_args(args, logger);
+  } catch (const exception &e) {
+    cerr << "Error: " << e.what() << endl;
+    exit(EXIT_FAILURE);
+  }
   return 0;
 }
