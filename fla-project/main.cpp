@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <cstring>
 using namespace std;
 
 class Logger
@@ -145,6 +146,20 @@ struct PDA_STATEMENT
   string             content;
 };
 
+void print_pda_statement(struct PDA_STATEMENT &statement, Logger &logger)
+{
+  switch (statement.type) {
+    case STATES: logger << "States: " << statement.content << endl; break;
+    case INPUT_ALPHABET: logger << "Input Alphabet: " << statement.content << endl; break;
+    case STACK_SYMBOLS: logger << "Stack Symbols: " << statement.content << endl; break;
+    case INITIAL_STATE: logger << "Initial State: " << statement.content << endl; break;
+    case STACK_INITIAL_SYMBOL: logger << "Stack Initial Symbol: " << statement.content << endl; break;
+    case FINAL_STATES: logger << "Final States: " << statement.content << endl; break;
+    case TRANSITION: logger << "Transition: " << statement.content << endl; break;
+    default: logger << "Unknown statement type" << endl; break;
+  }
+}
+
 struct PDA_STATEMENT get_statement(string &input)
 {
   struct PDA_STATEMENT ret;
@@ -203,7 +218,8 @@ void parse_pda(string &input, Logger &logger)
     line.erase(line.find_last_not_of(" \n\r\t") + 1);
     line.erase(0, line.find_first_not_of(" \n\r\t"));
     if (!line.empty()) {
-      logger << line << endl;
+      struct PDA_STATEMENT statement = get_statement(line);
+      print_pda_statement(statement, logger);
     }
   }
 }
