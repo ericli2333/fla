@@ -339,7 +339,7 @@ private:
             throw runtime_error(error);
           }
         }
-        print_states(logger);
+        // print_states(logger);
         break;
       }
       case INPUT_ALPHABET: {
@@ -460,6 +460,16 @@ private:
     // }
   }
 
+  bool input_alphabet_check(char ch)
+  {
+    for (char input : input_alphabet) {
+      if (input == ch) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 private:
   Logger                     logger;
   vector<char>               input_alphabet;
@@ -524,6 +534,10 @@ public:
     load_stack();
     current_state = initial_state;
     for (char ch : input) {
+      if (!input_alphabet_check(ch)) {
+        cout << "Illegal Input" << endl;
+        exit(EXIT_FAILURE);  // Illegal input character
+      }
       pair<bool, pair<int, string>> transition = state_list[current_state].get_transition(ch, pda_stack.top());
       if (!transition.first) {
         return false;
@@ -578,7 +592,7 @@ int main(int argc, char *argv[])
 
   try {
     args = parse_args(argc, argv, debug_logger);
-    print_args(args, debug_logger);
+    // print_args(args, debug_logger);
   } catch (const exception &e) {
     cerr << "Error: " << e.what() << endl;
     exit(EXIT_FAILURE);
@@ -587,17 +601,27 @@ int main(int argc, char *argv[])
   struct fla_content content;
   try {
     content = load_fla_file(args.file_path);
-    debug_logger << "File type: " << content.type << "\nFile content: " << content.content << endl;
+    // debug_logger << "File type: " << content.type << "\nFile content: " << content.content << endl;
 
   } catch (const exception &e) {
     cerr << "Error: " << e.what() << endl;
     exit(EXIT_FAILURE);
   }
+  if (content.type == TM) {
+  } else if (content.type == PDA) {
+    pda::PDA_Wrapper wrapper(debug_logger);
+    wrapper.compile(content.content);
+    // wrapper.print();
+    bool success = wrapper.run(args.input);
+    if (success) {
+      cout << "true" << endl;
+    } else {
+      cout << "false" << endl;
+    }
+  } else {
+    cerr << "Invalid file type" << endl;
+    exit(EXIT_FAILURE);
+  }
 
-  pda::PDA_Wrapper wrapper(debug_logger);
-  wrapper.compile(content.content);
-  wrapper.print();
-  bool success = wrapper.run(args.input);
-  debug_logger << "Success: " << success << endl;
   return 0;
 }
