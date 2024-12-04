@@ -237,16 +237,17 @@ private:
       }
     };
     string                                                        name;
-    bool                                                          is_accept;
+    bool                                                          is_accept_;
     unordered_map<pair<char, char>, pair<int, string>, pair_hash> transitions;
 
   public:
-    PDA_STATE(string name, bool is_accept) : name(name), is_accept(is_accept) {};
+    PDA_STATE(string name, bool is_accept) : name(name), is_accept_(is_accept) {};
     PDA_STATE()                                  = default;
     PDA_STATE(const PDA_STATE &other)            = default;
     PDA_STATE &operator=(const PDA_STATE &other) = default;
     PDA_STATE(PDA_STATE &&other)                 = default;
-    void   set_accept(bool value) { is_accept = value; }
+    void   set_accept(bool value) { is_accept_ = value; }
+    bool   is_accept() { return is_accept_; }
     string get_name() { return name; }
     void   print_transitions(Logger &logger, vector<PDA_STATE> &state_list)
     {
@@ -286,7 +287,7 @@ private:
       string ret;
       ret += name;
       ret += " ";
-      ret += is_accept ? "accept" : "normal";
+      ret += is_accept_ ? "accept" : "normal";
       return ret;
     }
   };
@@ -310,6 +311,14 @@ private:
       logger << state.to_string() << endl;
     }
     logger << endl;
+  }
+
+private:
+  void load_stack()
+  {
+    for (int idx = initial_stack_symbol.length() - 1; idx >= 0; idx--) {
+      pda_stack.push(initial_stack_symbol[idx]);
+    }
   }
 
 private:
@@ -342,11 +351,11 @@ private:
           }
           input_alphabet.push_back(character[0]);
         }
-        logger << "Input Alphabet paresed: ";
-        for (char ch : input_alphabet) {
-          logger << ch << " ";
-        }
-        logger << endl;
+        // logger << "Input Alphabet paresed: ";
+        // for (char ch : input_alphabet) {
+        //   logger << ch << " ";
+        // }
+        // logger << endl;
         break;
       }
       case STACK_SYMBOLS: {
@@ -360,27 +369,22 @@ private:
           }
           stack_alphabet.push_back(character[0]);
         }
-        logger << "Stack Alphabet paresed: ";
-        for (char ch : stack_alphabet) {
-          logger << ch << " ";
-        }
-        logger << endl;
+        // logger << "Stack Alphabet paresed: ";
+        // for (char ch : stack_alphabet) {
+        //   logger << ch << " ";
+        // }
+        // logger << endl;
         break;
       }
       case INITIAL_STATE: {
         initial_state = state_map[statement.content];
-        logger << "parsed Initial state: " << state_list[initial_state].to_string() << endl;
+        // logger << "parsed Initial state: " << state_list[initial_state].to_string() << endl;
         break;
       }
       case STACK_INITIAL_SYMBOL: {
-        for (int idx = statement.content.length() - 1; idx >= 0; idx--) {
-          pda_stack.push(statement.content[idx]);
-        }
-        logger << "parsed Stack Initial Symbol: ";
-        while (!pda_stack.empty()) {
-          logger << pda_stack.top() << endl;
-          pda_stack.pop();
-        }
+        initial_stack_symbol = statement.content;
+        // logger << "parsed Stack Initial Symbol: ";
+        // logger << initial_stack_symbol << endl;
 
         break;
       }
@@ -396,7 +400,7 @@ private:
           }
           state_list[it->second].set_accept(true);
         }
-        print_states(logger);
+        // print_states(logger);
         break;
       }
       case TRANSITION: {
@@ -445,13 +449,13 @@ private:
       line.erase(0, line.find_first_not_of(" \n\r\t"));
       if (!line.empty()) {
         struct pda::PDA_Wrapper::PDA_STATEMENT statement = pda::PDA_Wrapper::get_statement(line);
-        pda::PDA_Wrapper::print_pda_statement(statement, logger);
+        // pda::PDA_Wrapper::print_pda_statement(statement, logger);
         parse_pda_statement(statement, logger);
       }
     }
-    for (auto &state : state_list) {
-      state.print_transitions(logger, state_list);
-    }
+    // for (auto &state : state_list) {
+    //   state.print_transitions(logger, state_list);
+    // }
   }
 
 private:
@@ -460,17 +464,45 @@ private:
   vector<char>               stack_alphabet;
   vector<PDA_STATE>          state_list;
   unordered_map<string, int> state_map;
+  string                     initial_stack_symbol;
   int                        initial_state;
   int                        current_state;
   stack<char>                pda_stack;
 
 public:
   PDA_Wrapper(Logger logger_) : logger(logger_) {};
-  bool create_pda(string &pda_content)
+  bool compile(string &pda_content)
   {
     parse_pda(pda_content, logger);
     return true;
   }
+  void print()
+  {
+    logger << "Input Alphabet: ";
+    for (char ch : input_alphabet) {
+      logger << ch << " ";
+    }
+    logger << endl;
+    logger << "Stack Alphabet: ";
+    for (char ch : stack_alphabet) {
+      logger << ch << " ";
+    }
+    logger << endl;
+    logger << "Initial State: " << state_list[initial_state].get_name() << endl;
+    logger << "Stack Initial Symbol: ";
+    logger << initial_stack_symbol << endl;
+    logger << "Final States: ";
+    for (auto &state : state_list) {
+      if (state.is_accept()) {
+        logger << state.get_name() << " ";
+      }
+    }
+    logger << endl;
+    for (auto &state : state_list) {
+      state.print_transitions(logger, state_list);
+    }
+  }
+  bool run(string &input) { return true; }
 };
 
 };  // namespace pda
@@ -501,6 +533,7 @@ int main(int argc, char *argv[])
   }
 
   pda::PDA_Wrapper wrapper(debug_logger);
-  wrapper.create_pda(content.content);
+  wrapper.compile(content.content);
+  wrapper.print();
   return 0;
 }
