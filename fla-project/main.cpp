@@ -12,6 +12,8 @@
 #include <utility>
 using namespace std;
 
+const string BARRIER = "----------------------------------------";
+
 class Logger
 {
 public:
@@ -269,7 +271,7 @@ private:
       pair<int, string> value(it->second, out_stack_symbol);
       transitions[key] = value;
     }
-    pair<bool, pair<int, string>> get_transition(char input, char stack_top, list<PDA_STATE> &state_list)
+    pair<bool, pair<int, string>> get_transition(char input, char stack_top)
     {
       pair<bool, pair<int, string>> ret(false, pair<int, string>(-1, ""));
       pair<char, char>              key(input, stack_top);
@@ -478,6 +480,7 @@ public:
   }
   void print()
   {
+    logger << "All parsed PDA information:" << endl;
     logger << "Input Alphabet: ";
     for (char ch : input_alphabet) {
       logger << ch << " ";
@@ -501,8 +504,83 @@ public:
     for (auto &state : state_list) {
       state.print_transitions(logger, state_list);
     }
+    logger << "PDA information end" << endl;
   }
-  bool run(string &input) { return true; }
+  void runtime_print()
+  {
+    logger << "Runtime print start" << endl;
+    stack<char> temp_stack = pda_stack;
+    logger << "Current State: " << state_list[current_state].get_name() << endl;
+    logger << "Current Stack: ";
+    while (!temp_stack.empty()) {
+      logger << temp_stack.top();
+      temp_stack.pop();
+    }
+    logger << endl;
+    logger << "Runtime print end" << endl;
+  }
+  bool run(string &input)
+  {
+    load_stack();
+    current_state = initial_state;
+    for (char ch : input) {
+      logger << BARRIER << endl;
+      logger << "input char: " << ch << endl;
+      logger << "Current status before transition" << endl;
+      runtime_print();
+      pair<bool, pair<int, string>> transition = state_list[current_state].get_transition(ch, pda_stack.top());
+      if (!transition.first) {
+        return false;
+      }
+      current_state = transition.second.first;
+      if (!pda_stack.empty()) {
+        pda_stack.pop();
+      } else {
+        return false;
+      }
+      if (transition.second.second != "_") {
+        for (int idx = transition.second.second.length() - 1; idx >= 0; idx--) {
+          pda_stack.push(transition.second.second[idx]);
+        }
+      }
+      logger << "Current status after transition" << endl;
+      runtime_print();
+      logger << BARRIER << endl;
+    }
+    // Now try to use the empty string to finish the stack
+    logger << BARRIER << endl;
+    logger << "fixed input char: " << "_" << endl;
+    char ch = '_';
+    while (true) {
+      logger << BARRIER << endl;
+      logger << "input char: " << ch << endl;
+      logger << "Current status before transition" << endl;
+      runtime_print();
+      // Check if the current state is the final state
+      if (state_list[current_state].is_accept()) {
+        return true;
+      }
+      pair<bool, pair<int, string>> transition = state_list[current_state].get_transition(ch, pda_stack.top());
+      if (!transition.first) {
+        return false;
+      }
+      current_state = transition.second.first;
+      if (!pda_stack.empty()) {
+        pda_stack.pop();
+      } else {
+        return false;
+      }
+      if (transition.second.second != "_") {
+        for (int idx = transition.second.second.length() - 1; idx >= 0; idx--) {
+          pda_stack.push(transition.second.second[idx]);
+        }
+      }
+      logger << "Current status after transition" << endl;
+      runtime_print();
+      logger << BARRIER << endl;
+    }
+    return false;
+  }
 };
 
 };  // namespace pda
@@ -535,5 +613,7 @@ int main(int argc, char *argv[])
   pda::PDA_Wrapper wrapper(debug_logger);
   wrapper.compile(content.content);
   wrapper.print();
+  bool success = wrapper.run(args.input);
+  debug_logger << "Success: " << success << endl;
   return 0;
 }
