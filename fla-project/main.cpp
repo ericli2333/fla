@@ -524,10 +524,6 @@ public:
     load_stack();
     current_state = initial_state;
     for (char ch : input) {
-      logger << BARRIER << endl;
-      logger << "input char: " << ch << endl;
-      logger << "Current status before transition" << endl;
-      runtime_print();
       pair<bool, pair<int, string>> transition = state_list[current_state].get_transition(ch, pda_stack.top());
       if (!transition.first) {
         return false;
@@ -543,19 +539,10 @@ public:
           pda_stack.push(transition.second.second[idx]);
         }
       }
-      logger << "Current status after transition" << endl;
-      runtime_print();
-      logger << BARRIER << endl;
     }
     // Now try to use the empty string to finish the stack
-    logger << BARRIER << endl;
-    logger << "fixed input char: " << "_" << endl;
     char ch = '_';
     while (true) {
-      logger << BARRIER << endl;
-      logger << "input char: " << ch << endl;
-      logger << "Current status before transition" << endl;
-      runtime_print();
       // Check if the current state is the final state
       if (state_list[current_state].is_accept()) {
         return true;
@@ -575,9 +562,6 @@ public:
           pda_stack.push(transition.second.second[idx]);
         }
       }
-      logger << "Current status after transition" << endl;
-      runtime_print();
-      logger << BARRIER << endl;
     }
     return false;
   }
