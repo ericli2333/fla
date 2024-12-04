@@ -236,9 +236,9 @@ private:
         return hash1 ^ (hash2 << 1);
       }
     };
-    string                                          name;
-    bool                                            is_accept;
-    unordered_map<pair<char, char>, int, pair_hash> transitions;
+    string                                                        name;
+    bool                                                          is_accept;
+    unordered_map<pair<char, char>, pair<int, string>, pair_hash> transitions;
 
   public:
     PDA_STATE(string name, bool is_accept) : name(name), is_accept(is_accept) {};
@@ -246,22 +246,33 @@ private:
     PDA_STATE(const PDA_STATE &other)            = default;
     PDA_STATE &operator=(const PDA_STATE &other) = default;
     PDA_STATE(PDA_STATE &&other)                 = default;
-    void set_accept(bool value) { is_accept = value; }
-    void add_transition(char input, char stack_top, const string &state_name, unordered_map<string, int> &state_map)
+    void   set_accept(bool value) { is_accept = value; }
+    string get_name() { return name; }
+    void   print_transitions(Logger &logger, vector<PDA_STATE> &state_list)
+    {
+      logger << "Transitions for state: " << name << endl;
+      for (auto &transition : transitions) {
+        logger << transition.first.first << " " << transition.first.second << " -> "
+               << state_list[transition.second.first].get_name() << " " << transition.second.second << endl;
+      }
+    }
+    void add_transition(char input, char stack_top, const string &state_name, string out_stack_symbol,
+        unordered_map<string, int> &state_map)
     {
       auto it = state_map.find(state_name);
       if (it == state_map.end()) {
         string error = "State not found: " + state_name;
         throw runtime_error(error);
       }
-      pair<char, char> key(input, stack_top);
-      transitions[key] = it->second;
+      pair<char, char>  key(input, stack_top);
+      pair<int, string> value(it->second, out_stack_symbol);
+      transitions[key] = value;
     }
-    pair<bool, int> get_transition(char input, char stack_top, list<PDA_STATE> &state_list)
+    pair<bool, pair<int, string>> get_transition(char input, char stack_top, list<PDA_STATE> &state_list)
     {
-      pair<bool, int>  ret(false, -1);
-      pair<char, char> key(input, stack_top);
-      auto             it = transitions.find(key);
+      pair<bool, pair<int, string>> ret(false, pair<int, string>(-1, ""));
+      pair<char, char>              key(input, stack_top);
+      auto                          it = transitions.find(key);
       if (it == transitions.end()) {
         return ret;
       } else {
@@ -388,7 +399,31 @@ private:
         print_states(logger);
         break;
       }
-      case TRANSITION: break;
+      case TRANSITION: {
+        stringstream   ss(statement.content);
+        string         transition_part;
+        vector<string> transition_parts;
+        while (getline(ss, transition_part, ' ')) {
+          transition_parts.push_back(transition_part);
+        }
+        if (transition_parts.size() != 5) {
+          string error = "Invalid transition statement: " + statement.content;
+          throw runtime_error(error);
+        }
+        string input_state  = transition_parts[0];
+        string input_char   = transition_parts[1];
+        string stack_top    = transition_parts[2];
+        string output_state = transition_parts[3];
+        string output_stack = transition_parts[4];
+        auto   it           = state_map.find(input_state);
+        if (it == state_map.end()) {
+          string error = "State not found: " + input_state;
+          throw runtime_error(error);
+        }
+        state_list[it->second].add_transition(input_char[0], stack_top[0], output_state, output_stack, state_map);
+        break;
+      }
+
       default: break;
     }
   }
@@ -413,6 +448,9 @@ private:
         pda::PDA_Wrapper::print_pda_statement(statement, logger);
         parse_pda_statement(statement, logger);
       }
+    }
+    for (auto &state : state_list) {
+      state.print_transitions(logger, state_list);
     }
   }
 
