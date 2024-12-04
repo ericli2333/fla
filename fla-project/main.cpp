@@ -9,6 +9,7 @@
 #include <sstream>
 #include <cstring>
 #include <vector>
+#include <utility>
 using namespace std;
 
 class Logger
@@ -224,30 +225,43 @@ private:
   class PDA_STATE
   {
   private:
-    string                           name;
-    bool                             is_accept;
-    unordered_map<char, PDA_STATE *> transitions;
+    struct pair_hash
+    {
+      template <class T1, class T2>
+      std::size_t operator()(const std::pair<T1, T2> &p) const
+      {
+        auto hash1 = std::hash<T1>{}(p.first);
+        auto hash2 = std::hash<T2>{}(p.second);
+        // 合并两个哈希值
+        return hash1 ^ (hash2 << 1);
+      }
+    };
+    string                                          name;
+    bool                                            is_accept;
+    unordered_map<pair<char, char>, int, pair_hash> transitions;
 
   public:
     PDA_STATE(string name, bool is_accept) : name(name), is_accept(is_accept) {};
-    PDA_STATE() {};
+    PDA_STATE()                                  = default;
     PDA_STATE(const PDA_STATE &other)            = default;
     PDA_STATE &operator=(const PDA_STATE &other) = default;
     PDA_STATE(PDA_STATE &&other)                 = default;
     void set_accept(bool value) { is_accept = value; }
-    void add_transition(char input, const string &state_name, unordered_map<string, PDA_STATE> &state_map)
+    void add_transition(char input, char stack_top, const string &state_name, unordered_map<string, int> &state_map)
     {
       auto it = state_map.find(state_name);
       if (it == state_map.end()) {
         string error = "State not found: " + state_name;
         throw runtime_error(error);
       }
-      transitions[input] = &it->second;
+      pair<char, char> key(input, stack_top);
+      transitions[key] = it->second;
     }
-    pair<bool, PDA_STATE *> get_transition(char input)
+    pair<bool, int> get_transition(char input, char stack_top, list<PDA_STATE> &state_list)
     {
-      pair<bool, PDA_STATE *> ret(false, this);
-      auto                    it = transitions.find(input);
+      pair<bool, int>  ret(false, -1);
+      pair<char, char> key(input, stack_top);
+      auto             it = transitions.find(key);
       if (it == transitions.end()) {
         return ret;
       } else {
@@ -273,9 +287,7 @@ private:
       return false;
     }
     state_list.emplace_back(name, is_accept);
-    auto it = state_list.end();
-    it--;
-    state_map[name] = it;
+    state_map[name] = state_list.size() - 1;
     return true;
   }
 
@@ -346,7 +358,7 @@ private:
       }
       case INITIAL_STATE: {
         initial_state = state_map[statement.content];
-        logger << "parsed Initial state: " << initial_state->to_string() << endl;
+        logger << "parsed Initial state: " << state_list[initial_state].to_string() << endl;
         break;
       }
       case STACK_INITIAL_SYMBOL: {
@@ -371,7 +383,7 @@ private:
             string error = "State not found: " + str;
             throw runtime_error(error);
           }
-          it->second->set_accept(true);
+          state_list[it->second].set_accept(true);
         }
         print_states(logger);
         break;
@@ -405,14 +417,14 @@ private:
   }
 
 private:
-  Logger                                           logger;
-  vector<char>                                     input_alphabet;
-  vector<char>                                     stack_alphabet;
-  list<PDA_STATE>                                  state_list;
-  unordered_map<string, list<PDA_STATE>::iterator> state_map;
-  list<PDA_STATE>::iterator                        initial_state;
-  list<PDA_STATE>::iterator                        current_state;
-  stack<char>                                      pda_stack;
+  Logger                     logger;
+  vector<char>               input_alphabet;
+  vector<char>               stack_alphabet;
+  vector<PDA_STATE>          state_list;
+  unordered_map<string, int> state_map;
+  int                        initial_state;
+  int                        current_state;
+  stack<char>                pda_stack;
 
 public:
   PDA_Wrapper(Logger logger_) : logger(logger_) {};
