@@ -52,6 +52,7 @@ void print_help()
             fla [-v|--verbose] [-h|--help] <tm> <input>");
 }
 
+namespace fla {
 struct Args
 {
   bool   verbose;
@@ -137,6 +138,7 @@ struct fla_content load_fla_file(const string &file_path)
   ret.content = buffer.str();
   return ret;
 }
+};  // namespace fla
 // End file reading
 
 // Start PDA parsing
@@ -232,8 +234,8 @@ private:
       template <class T1, class T2>
       std::size_t operator()(const std::pair<T1, T2> &p) const
       {
-        auto hash1 = std::hash<T1>{}(p.first);
-        auto hash2 = std::hash<T2>{}(p.second);
+        auto hash1 = std::hash<T1>()(p.first);
+        auto hash2 = std::hash<T2>()(p.second);
         // 合并两个哈希值
         return hash1 ^ (hash2 << 1);
       }
@@ -271,9 +273,9 @@ private:
       pair<int, string> value(it->second, out_stack_symbol);
       transitions[key] = value;
     }
-    pair<bool, pair<int, string>> get_transition(char input, char stack_top)
+    pair<bool, pair<int, string> > get_transition(char input, char stack_top)
     {
-      pair<bool, pair<int, string>> ret(false, pair<int, string>(-1, ""));
+      pair<bool, pair<int, string> > ret(false, pair<int, string>(-1, ""));
       pair<char, char>              key(input, stack_top);
       auto                          it = transitions.find(key);
       if (it == transitions.end()) {
@@ -538,7 +540,7 @@ public:
         cout << "Illegal Input" << endl;
         exit(EXIT_FAILURE);  // Illegal input character
       }
-      pair<bool, pair<int, string>> transition = state_list[current_state].get_transition(ch, pda_stack.top());
+      pair<bool, pair<int, string> > transition = state_list[current_state].get_transition(ch, pda_stack.top());
       if (!transition.first) {
         return false;
       }
@@ -561,7 +563,7 @@ public:
       if (state_list[current_state].is_accept()) {
         return true;
       }
-      pair<bool, pair<int, string>> transition = state_list[current_state].get_transition(ch, pda_stack.top());
+      pair<bool, pair<int, string> > transition = state_list[current_state].get_transition(ch, pda_stack.top());
       if (!transition.first) {
         return false;
       }
@@ -588,27 +590,27 @@ int main(int argc, char *argv[])
 {
   Logger debug_logger;
   debug_logger.setLogToStderr(true);
-  struct Args args;
+  struct fla::Args args;
 
   try {
-    args = parse_args(argc, argv, debug_logger);
+    args = fla::parse_args(argc, argv, debug_logger);
     // print_args(args, debug_logger);
   } catch (const exception &e) {
     cerr << "Error: " << e.what() << endl;
     exit(EXIT_FAILURE);
   }
 
-  struct fla_content content;
+  struct fla::fla_content content;
   try {
-    content = load_fla_file(args.file_path);
+    content = fla::load_fla_file(args.file_path);
     // debug_logger << "File type: " << content.type << "\nFile content: " << content.content << endl;
 
   } catch (const exception &e) {
     cerr << "Error: " << e.what() << endl;
     exit(EXIT_FAILURE);
   }
-  if (content.type == TM) {
-  } else if (content.type == PDA) {
+  if (content.type == fla::TM) {
+  } else if (content.type == fla::PDA) {
     pda::PDA_Wrapper wrapper(debug_logger);
     wrapper.compile(content.content);
     // wrapper.print();
