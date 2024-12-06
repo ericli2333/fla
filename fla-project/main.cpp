@@ -622,6 +622,158 @@ private:
     };
   };
   vector<TM_STATEMENT> lexer(string &content);
+  void                 parse_statement_(TM_STATEMENT &statement);
+  void                 parse_statement(vector<TM_STATEMENT> &statements)
+  {
+    for (auto &statement : statements) {
+      parse_statement_(statement);
+    }
+  }
+
+private:
+  struct vector_hash
+  {
+    template <typename T>
+    std::size_t operator()(const std::vector<T> &v) const
+    {
+      std::size_t seed = 0;
+      for (const T &elem : v) {
+        seed ^= std::hash<T>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      }
+      return seed;
+    }
+  };
+
+private:
+  class Tape
+  {
+  private:
+    list<char>           tape_;
+    list<char>::iterator head_;
+    char                 blank_symbol;
+
+  public:
+    Tape(char blank_symbol) : blank_symbol(blank_symbol), head_(tape_.begin()) {};
+    void reset(string &str)
+    {
+      tape_.clear();
+      for (char ch : str) {
+        tape_.push_back(ch);
+      }
+      head_ = tape_.begin();
+    }
+    void move_left()
+    {
+      if (head_ == tape_.begin()) {
+        tape_.push_front(blank_symbol);
+      }
+      head_--;
+    }
+    void move_right()
+    {
+      head_++;
+      if (head_ == tape_.end()) {
+        tape_.push_back(blank_symbol);
+      }
+    }
+    char   read() { return *head_; }
+    void   write(char ch) { *head_ = ch; }
+    string to_string()
+    {
+      string ret;
+      for (auto it = tape_.begin(); it != tape_.end(); it++) {
+        ret += *it;
+      }
+      return ret;
+    }
+  };
+
+  struct Transition
+  {
+    int          to_state;
+    vector<char> write_symbols;
+    vector<char> move_dirctions;
+    string       to_string()
+    {
+      string ret;
+      ret += "To state: ";
+      ret += to_state;
+      ret += "\n";
+      ret += "Write symbols: ";
+      for (char ch : write_symbols) {
+        ret += ch;
+        ret += " ";
+      }
+      ret += "\n";
+      ret += "Move directions: ";
+      for (char ch : move_dirctions) {
+        ret += ch;
+        ret += " ";
+      }
+      ret += "\n";
+      return ret;
+    }
+  };
+
+  class State
+  {
+  private:
+    string                                               name;
+    bool                                                 is_accept_;
+    unordered_map<vector<char>, Transition, vector_hash> transition_map;
+
+  public:
+    State(string name) : name(name), is_accept_(false) {};
+    void set_accept(bool value) { is_accept_ = value; };
+    bool is_accept() { return is_accept_; };
+    void add_transition(
+        vector<char> tap_sympols, int to_state, vector<char> write_symbols, vector<char> move_directions)
+    {
+      Transition transition;
+      transition.to_state         = to_state;
+      transition.write_symbols    = write_symbols;
+      transition.move_dirctions   = move_directions;
+      transition_map[tap_sympols] = transition;
+    };
+    struct Transition get_transition(vector<char> tap_sympols)
+    {
+      unordered_map<vector<char>, Transition, vector_hash>::iterator it = transition_map.find(tap_sympols);
+      if (it == transition_map.end()) {
+        throw runtime_error("Transition not found");
+      }
+      return it->second;
+    };
+    string to_string()
+    {
+      string ret;
+      ret += "Name:";
+      ret += name;
+      ret += " ";
+      ret += "Type: ";
+      ret += is_accept_ ? "accept" : "normal";
+      ret += "\n";
+      ret += "Transitions:\n";
+      for (auto &transition : transition_map) {
+        ret += "Tape symbols: ";
+        for (char ch : transition.first) {
+          ret += ch;
+          ret += " ";
+        }
+        ret += "\n";
+        ret += transition.second.to_string();
+      }
+      return ret;
+    }
+  };
+  // 成员变量
+private:
+  char                       blank_symbol;
+  vector<Tape>               tapes;
+  vector<State>              state_list;
+  vector<char>               input_alphabet;
+  vector<char>               tape_alphabet;
+  unordered_map<string, int> state_map;
+  int                        initial_state;
 
 public:
   TM_Wrapper(Logger debug_logger_, Logger verbose_logger_)
@@ -693,10 +845,121 @@ vector<TM_Wrapper::TM_STATEMENT> TM_Wrapper::lexer(string &content)
   }
   return vec;
 }
+void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
+{
+  switch (statement.type) {
+    case STATES: {
+      debug_logger << "States: " << statement.content << endl;
+      string       true_content = statement.content.substr(1, statement.content.size() - 2);
+      stringstream ss(true_content);
+      string       state;
+      while (getline(ss, state, ',')) {
+        if (state_map.find(state) != state_map.end()) {
+          throw runtime_error("State already exists: " + state);
+        }
+        State st = State(state);
+        state_list.push_back(st);
+        state_map[state] = state_list.size() - 1;
+      }
+      for (auto &state : state_list) {
+        debug_logger << state.to_string() << endl;
+      }
+      break;
+    }
+    case INPUT_ALPHABET: {
+      debug_logger << "Input Alphabet: " << statement.content << endl;
+      string       true_content = statement.content.substr(1, statement.content.size() - 2);
+      stringstream ss(true_content);
+      string       character;
+      while (getline(ss, character, ',')) {
+        if (character.size() != 1) {
+          throw runtime_error("Invalid character: " + character);
+        }
+        input_alphabet.push_back(character[0]);
+      }
+      debug_logger << "Input Alphabet paresed: ";
+      for (char ch : input_alphabet) {
+        debug_logger << ch << " ";
+      }
+      debug_logger << endl;
+      break;
+    }
+    case TAPE_SYMBOLS: {
+      debug_logger << "Tape Symbols: " << statement.content << endl;
+      string       true_content = statement.content.substr(1, statement.content.size() - 2);
+      stringstream ss(true_content);
+      string       character;
+      while (getline(ss, character, ',')) {
+        if (character.size() != 1) {
+          throw runtime_error("Invalid character: " + character);
+        }
+        tape_alphabet.push_back(character[0]);
+      }
+      debug_logger << "Tape Alphabet paresed: ";
+      for (char ch : tape_alphabet) {
+        debug_logger << ch << " ";
+      }
+      debug_logger << endl;
+      break;
+    }
+    case INITIAL_STATE: {
+      debug_logger << "Initial State: " << statement.content << endl;
+      initial_state = state_map[statement.content];
+      debug_logger << "parsed Initial state: " << state_list[initial_state].to_string() << endl;
+      break;
+    }
+    case BRANKE_SYMBOL: {
+      debug_logger << "Brank Symbol: " << statement.content << endl;
+      blank_symbol = statement.content[0];
+      debug_logger << "parsed Stack Initial Symbol: ";
+      debug_logger << blank_symbol << endl;
+      break;
+    }
+    case ACCEPT_STATES: {
+      debug_logger << "Accept States: " << statement.content << endl;
+      string       true_content = statement.content.substr(1, statement.content.size() - 2);
+      stringstream ss(true_content);
+      string       str;
+      while (getline(ss, str, ',')) {
+        auto it = state_map.find(str);
+        if (it == state_map.end()) {
+          string error = "State not found: " + str;
+          throw runtime_error(error);
+        }
+        state_list[it->second].set_accept(true);
+      }
+      for (auto &state : state_list) {
+        debug_logger << state.to_string() << endl;
+      }
+      break;
+    }
+    case TAPE_COUNT: {
+      debug_logger << "Tape Count: " << statement.content << endl;
+      int tape_cnt = stoi(statement.content);
+      for (int i = 0; i < tape_cnt; i++) {
+        tapes.emplace_back(blank_symbol);
+      }
+      debug_logger << "Tape count: " << tape_cnt << endl;
+      int tmp = 0;
+      for (auto tape : tapes) {
+        debug_logger << tape.to_string() << endl;
+        debug_logger << "Tape " << tmp << " end" << endl;
+        tmp++;
+      }
+      break;
+    }
+    case TRANSITION: {debug_logger << "Transition: " << statement.content << endl; 
+    
+    break;}
+    default: debug_logger << "Unknown statement type" << endl; break;
+  }
+}
 void TM_Wrapper::compile(string &tm_content)
 {
   debug_logger << "TM content: " << tm_content << endl;
   auto vec = lexer(tm_content);
+  debug_logger << "Start parsing" << endl;
+  parse_statement(vec);
 }
 void TM_Wrapper::print() {}
 void TM_Wrapper::runtime_print() {}
