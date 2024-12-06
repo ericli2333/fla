@@ -276,8 +276,8 @@ private:
     pair<bool, pair<int, string> > get_transition(char input, char stack_top)
     {
       pair<bool, pair<int, string> > ret(false, pair<int, string>(-1, ""));
-      pair<char, char>              key(input, stack_top);
-      auto                          it = transitions.find(key);
+      pair<char, char>               key(input, stack_top);
+      auto                           it = transitions.find(key);
       if (it == transitions.end()) {
         return ret;
       } else {
@@ -586,6 +586,123 @@ public:
 };  // namespace pda
 // End PDA parsing
 
+namespace tm_space {
+class TM_Wrapper
+{
+private:
+  Logger debug_logger;
+  Logger verbose_logger;
+  enum TM_STATEMENT_TYPE
+  {
+    STATES,
+    INPUT_ALPHABET,
+    TAPE_SYMBOLS,
+    INITIAL_STATE,
+    BRANKE_SYMBOL,
+    TERMINAL_STATES,
+    TAPE_COUNT,
+    TRANSITION
+  };
+  struct TM_STATEMENT
+  {
+    TM_STATEMENT_TYPE type;
+    string            content;
+    string            to_string()
+    {
+      switch (this->type) {
+        case TRANSITION: return "Transition: " + content;
+        case STATES: return "States: " + content;
+        case INPUT_ALPHABET: return "Input Alphabet: " + content;
+        case TAPE_SYMBOLS: return "Tape Symbols: " + content;
+        case INITIAL_STATE: return "Initial State: " + content;
+        case BRANKE_SYMBOL: return "Brank Symbol: " + content;
+        case TERMINAL_STATES: return "Terminal States: " + content;
+        case TAPE_COUNT: return "Tape Count: " + content;
+      };
+    };
+  };
+  vector<TM_STATEMENT> lexer(string &content);
+
+public:
+  TM_Wrapper(Logger debug_logger_, Logger verbose_logger_)
+      : debug_logger(debug_logger_), verbose_logger(verbose_logger_) {};
+  void compile(string &tm_content);
+  void print();
+  void runtime_print();
+  bool run(string &input);
+
+  // implement the TM_Wrapper class here
+};
+vector<TM_Wrapper::TM_STATEMENT> TM_Wrapper::lexer(string &content)
+{
+  stringstream         ss(content);
+  string               line;
+  vector<TM_STATEMENT> vec;
+  while (getline(ss, line, '\n')) {
+    size_t pos = line.find(';');
+    if (pos != string::npos) {
+      line = line.substr(0, pos);
+    }
+    line.erase(line.find_last_not_of(" \n\r\t") + 1);
+    line.erase(0, line.find_first_not_of(" \n\r\t"));
+    if (!line.empty()) {
+      struct TM_STATEMENT ret;
+      if (line[0] == '#') {
+        // Here is the first six cases
+        switch (line[1]) {
+          case 'Q':
+            ret.type    = tm_space::TM_Wrapper::STATES;
+            ret.content = line.substr(5);
+            break;
+          case 'S':
+            ret.type    = tm_space::TM_Wrapper::INPUT_ALPHABET;
+            ret.content = line.substr(5);
+            break;
+          case 'G':
+            ret.type    = tm_space::TM_Wrapper::TAPE_SYMBOLS;
+            ret.content = line.substr(5);
+            break;
+          case 'q':
+            if (line[2] != '0') {
+              throw runtime_error("Invalid statement");
+            }
+            ret.type    = tm_space::TM_Wrapper::INITIAL_STATE;
+            ret.content = line.substr(6);
+            break;
+          case 'B':
+            ret.type    = tm_space::TM_Wrapper::BRANKE_SYMBOL;
+            ret.content = line.substr(5);
+            break;
+          case 'F':
+            ret.type    = tm_space::TM_Wrapper::TERMINAL_STATES;
+            ret.content = line.substr(5);
+            break;
+          case 'N':
+            ret.type    = tm_space::TM_Wrapper::TAPE_COUNT;
+            ret.content = line.substr(5);
+            break;
+          default: throw runtime_error("Invalid statement");
+        }
+      } else {
+        ret.type    = TRANSITION;
+        ret.content = line;
+      }
+      // Statement created
+      vec.push_back(ret);
+    }
+  }
+  return vec;
+}
+void TM_Wrapper::compile(string &tm_content)
+{
+  debug_logger << "TM content: " << tm_content << endl;
+  auto vec = lexer(tm_content);
+}
+void TM_Wrapper::print() {}
+void TM_Wrapper::runtime_print() {}
+bool TM_Wrapper::run(string &input) { return false; }
+};  // namespace tm_space
+
 int main(int argc, char *argv[])
 {
   Logger debug_logger;
@@ -610,6 +727,8 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
   if (content.type == fla::TM) {
+    tm_space::TM_Wrapper wrapper(debug_logger, debug_logger);
+    wrapper.compile(content.content);
   } else if (content.type == fla::PDA) {
     pda::PDA_Wrapper wrapper(debug_logger);
     wrapper.compile(content.content);
