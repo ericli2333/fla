@@ -628,6 +628,11 @@ private:
     for (auto &statement : statements) {
       parse_statement_(statement);
     }
+    for (auto &state : state_list) {
+      debug_logger << BARRIER << endl;
+      debug_logger << state.to_string(state_list) << endl;
+      debug_logger << BARRIER << endl;
+    }
   }
 
 private:
@@ -688,16 +693,17 @@ private:
     }
   };
 
+  class State;
   struct Transition
   {
     int          to_state;
     vector<char> write_symbols;
     vector<char> move_dirctions;
-    string       to_string()
+    string       to_string(vector<State> &statelist)
     {
       string ret;
       ret += "To state: ";
-      ret += to_state;
+      ret += statelist[to_state].get_name();
       ret += "\n";
       ret += "Write symbols: ";
       for (char ch : write_symbols) {
@@ -724,10 +730,11 @@ private:
 
   public:
     State(string name) : name(name), is_accept_(false) {};
-    void set_accept(bool value) { is_accept_ = value; };
-    bool is_accept() { return is_accept_; };
-    void add_transition(
-        vector<char> tap_sympols, int to_state, vector<char> write_symbols, vector<char> move_directions)
+    void   set_accept(bool value) { is_accept_ = value; };
+    bool   is_accept() { return is_accept_; };
+    string get_name() { return name; };
+    void   add_transition(
+          vector<char> tap_sympols, int to_state, vector<char> write_symbols, vector<char> move_directions)
     {
       Transition transition;
       transition.to_state         = to_state;
@@ -743,7 +750,7 @@ private:
       }
       return it->second;
     };
-    string to_string()
+    string to_string(vector<State> &state_list)
     {
       string ret;
       ret += "Name:";
@@ -760,7 +767,7 @@ private:
           ret += " ";
         }
         ret += "\n";
-        ret += transition.second.to_string();
+        ret += transition.second.to_string(state_list);
       }
       return ret;
     }
@@ -862,7 +869,7 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
         state_map[state] = state_list.size() - 1;
       }
       for (auto &state : state_list) {
-        debug_logger << state.to_string() << endl;
+        debug_logger << state.to_string(state_list) << endl;
       }
       break;
     }
@@ -905,7 +912,7 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
     case INITIAL_STATE: {
       debug_logger << "Initial State: " << statement.content << endl;
       initial_state = state_map[statement.content];
-      debug_logger << "parsed Initial state: " << state_list[initial_state].to_string() << endl;
+      debug_logger << "parsed Initial state: " << state_list[initial_state].to_string(state_list) << endl;
       break;
     }
     case BRANKE_SYMBOL: {
@@ -929,7 +936,7 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
         state_list[it->second].set_accept(true);
       }
       for (auto &state : state_list) {
-        debug_logger << state.to_string() << endl;
+        debug_logger << state.to_string(state_list) << endl;
       }
       break;
     }
@@ -948,9 +955,61 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
       }
       break;
     }
-    case TRANSITION: {debug_logger << "Transition: " << statement.content << endl; 
-    
-    break;}
+    case TRANSITION: {
+      debug_logger << "Transition: " << statement.content << endl;
+      stringstream   ss(statement.content);
+      string         transition_part;
+      vector<string> transition_parts;
+      int            cnt = 1;
+      string         old_state;
+      vector<char>   old_tape_symbols;
+      string         new_state;
+      vector<char>   new_tape_symbols;
+      vector<char>   move_directions;
+      while (getline(ss, transition_part, ' ')) {
+        switch (cnt) {
+          case 1:
+            // Old state
+            old_state = transition_part;
+            break;
+          case 2:
+            // Old tape symbol
+            for (char ch : transition_part) {
+              old_tape_symbols.push_back(ch);
+            }
+            break;
+          case 3:
+            // New tape symbols
+            for (char ch : transition_part) {
+              new_tape_symbols.push_back(ch);
+            }
+            break;
+          case 4:
+            // direction
+            for (char ch : transition_part) {
+              move_directions.push_back(ch);
+            }
+            break;
+          case 5:
+            // New state
+            new_state = transition_part;
+            break;
+          default: throw runtime_error("Invalid transition statement");
+        }
+        cnt++;
+      }
+      if (cnt != 6) {
+        string error = "Invalid transition statement: " + statement.content;
+        throw runtime_error(error);
+      }
+      auto it = state_map.find(old_state);
+      if (it == state_map.end()) {
+        string error = "State not found: " + old_state;
+        throw runtime_error(error);
+      }
+      state_list[it->second].add_transition(old_tape_symbols, state_map[new_state], new_tape_symbols, move_directions);
+      break;
+    }
     default: debug_logger << "Unknown statement type" << endl; break;
   }
 }
