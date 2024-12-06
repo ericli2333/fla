@@ -659,7 +659,7 @@ private:
 
   public:
     Tape(char blank_symbol) : blank_symbol(blank_symbol), head_(tape_.begin()) {};
-    void reset(string &str)
+    void reset(const string &str)
     {
       tape_.clear();
       for (char ch : str) {
@@ -746,7 +746,10 @@ private:
     {
       unordered_map<vector<char>, Transition, vector_hash>::iterator it = transition_map.find(tap_sympols);
       if (it == transition_map.end()) {
-        throw runtime_error("Transition not found");
+        // return invalid transition
+        Transition trans;
+        trans.to_state = -1;
+        return trans;
       }
       return it->second;
     };
@@ -772,6 +775,16 @@ private:
       return ret;
     }
   };
+
+  bool is_valid_input(char ch)
+  {
+    for (char input : input_alphabet) {
+      if (input == ch) {
+        return true;
+      }
+    }
+    return false;
+  };
   // 成员变量
 private:
   char                       blank_symbol;
@@ -781,6 +794,7 @@ private:
   vector<char>               tape_alphabet;
   unordered_map<string, int> state_map;
   int                        initial_state;
+  int                        current_state;
 
 public:
   TM_Wrapper(Logger debug_logger_, Logger verbose_logger_)
@@ -1022,7 +1036,46 @@ void TM_Wrapper::compile(string &tm_content)
 }
 void TM_Wrapper::print() {}
 void TM_Wrapper::runtime_print() {}
-bool TM_Wrapper::run(string &input) { return false; }
+bool TM_Wrapper::run(string &input)
+{
+  for (size_t i = 0; i < input.size(); i++) {
+    if (!is_valid_input(input[i])) {
+      cerr << "Illegal input character" << endl;
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  tapes[0].reset(input);
+  for (int i = 1; i < tapes.size(); i++) {
+    tapes[i].reset("_");
+  }
+  current_state = initial_state;
+  while (true) {
+    State       &state = state_list[current_state];
+    vector<char> current_tape_symbols;
+    for (int i = 0; i < tapes.size(); i++) {
+      current_tape_symbols.push_back(tapes[i].read());
+    }
+    Transition transition = state.get_transition(current_tape_symbols);
+    if (transition.to_state == -1) {
+      return state.is_accept();
+    }
+    for (size_t i = 0; i < tapes.size(); i++) {
+      tapes[i].write(transition.write_symbols[i]);
+      if (transition.move_dirctions[i] == 'l') {
+        tapes[i].move_left();
+      } else if (transition.move_dirctions[i] == 'r') {
+        tapes[i].move_right();
+      } else if (transition.move_dirctions[i] == '*') {
+        // Do nothing
+      } else {
+        throw runtime_error("Invalid move direction");
+      }
+    }
+    current_state = transition.to_state;
+  }
+  return false;
+}
 };  // namespace tm_space
 
 int main(int argc, char *argv[])
@@ -1051,7 +1104,14 @@ int main(int argc, char *argv[])
   if (content.type == fla::TM) {
     tm_space::TM_Wrapper wrapper(debug_logger, debug_logger);
     wrapper.compile(content.content);
+    bool success = wrapper.run(args.input);
+    if (success) {
+      cout << "true" << endl;
+    } else {
+      cout << "false" << endl;
+    }
   } else if (content.type == fla::PDA) {
+    debug_logger.setLogToStderr(false);
     pda::PDA_Wrapper wrapper(debug_logger);
     wrapper.compile(content.content);
     // wrapper.print();
