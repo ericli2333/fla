@@ -590,8 +590,8 @@ namespace tm_space {
 class TM_Wrapper
 {
 private:
-  Logger debug_logger;
-  Logger verbose_logger;
+  Logger &debug_logger;
+  Logger &verbose_logger;
   enum TM_STATEMENT_TYPE
   {
     STATES,
@@ -679,10 +679,22 @@ private:
       head_++;
       if (head_ == tape_.end()) {
         tape_.push_back(blank_symbol);
+        auto it = tape_.end();
+        it--;
+        head_ = it;
       }
     }
-    char   read() { return *head_; }
-    void   write(char ch) { *head_ = ch; }
+    char read() { return *head_; }
+    void write(char ch) { *head_ = ch; }
+    int  get_length() { return tape_.size(); }
+    int  get_head_pos()
+    {
+      int ret = 0;
+      for (auto it = tape_.begin(); it != head_; it++) {
+        ret++;
+      }
+      return ret;
+    }
     string to_string()
     {
       string ret;
@@ -744,14 +756,17 @@ private:
     };
     struct Transition get_transition(vector<char> tap_sympols)
     {
+
       unordered_map<vector<char>, Transition, vector_hash>::iterator it = transition_map.find(tap_sympols);
-      if (it == transition_map.end()) {
+      if (transition_map.empty() || it == transition_map.end()) {
         // return invalid transition
         Transition trans;
         trans.to_state = -1;
         return trans;
+      } else {
+        // case 2
+        return it->second;
       }
-      return it->second;
     };
     string to_string(vector<State> &state_list)
     {
@@ -801,7 +816,7 @@ public:
       : debug_logger(debug_logger_), verbose_logger(verbose_logger_) {};
   void compile(string &tm_content);
   void print();
-  void runtime_print();
+  void verbose(int step);
   bool run(string &input);
 
   // implement the TM_Wrapper class here
@@ -1035,7 +1050,27 @@ void TM_Wrapper::compile(string &tm_content)
   parse_statement(vec);
 }
 void TM_Wrapper::print() {}
-void TM_Wrapper::runtime_print() {}
+void TM_Wrapper::verbose(int step)
+{
+  // Use the verbose logger to print the runtime information
+  verbose_logger << "Step:" << step << endl;
+  verbose_logger << "State: " << state_list[current_state].get_name() << endl;
+  for (int i = 0; i < tapes.size(); i++) {
+    verbose_logger << "Tape " << i << ": " << tapes[i].to_string() << endl;
+    int head_pos = tapes[i].get_head_pos();
+    // debug_logger << "Head " << i << ": " << head_pos << endl;
+    verbose_logger << "Head " << i << ": ";
+    for (int j = 0; j < tapes[i].get_length(); j++) {
+      if (j == head_pos) {
+        verbose_logger << "^";
+      } else {
+        verbose_logger << " ";
+      }
+    }
+    verbose_logger << endl;
+  }
+  verbose_logger << BARRIER << endl;
+}
 bool TM_Wrapper::run(string &input)
 {
   for (size_t i = 0; i < input.size(); i++) {
@@ -1050,13 +1085,20 @@ bool TM_Wrapper::run(string &input)
     tapes[i].reset("_");
   }
   current_state = initial_state;
+  int step_cnt  = 0;
   while (true) {
     State       &state = state_list[current_state];
     vector<char> current_tape_symbols;
     for (int i = 0; i < tapes.size(); i++) {
       current_tape_symbols.push_back(tapes[i].read());
     }
+    debug_logger << "Enter Get Transition" << endl;
     Transition transition = state.get_transition(current_tape_symbols);
+    if (transition.to_state == -1) {
+      debug_logger << "Halt" << endl;
+    } else {
+      debug_logger << "Transition: " << transition.to_string(state_list) << endl;
+    }
     if (transition.to_state == -1) {
       return state.is_accept();
     }
@@ -1073,6 +1115,8 @@ bool TM_Wrapper::run(string &input)
       }
     }
     current_state = transition.to_state;
+    verbose(step_cnt);
+    step_cnt++;
   }
   return false;
 }
@@ -1102,6 +1146,7 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
   if (content.type == fla::TM) {
+    // debug_logger.setLogToStderr(false);
     tm_space::TM_Wrapper wrapper(debug_logger, debug_logger);
     wrapper.compile(content.content);
     bool success = wrapper.run(args.input);
@@ -1111,7 +1156,6 @@ int main(int argc, char *argv[])
       cout << "false" << endl;
     }
   } else if (content.type == fla::PDA) {
-    debug_logger.setLogToStderr(false);
     pda::PDA_Wrapper wrapper(debug_logger);
     wrapper.compile(content.content);
     // wrapper.print();
