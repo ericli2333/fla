@@ -599,7 +599,7 @@ private:
     TAPE_SYMBOLS,
     INITIAL_STATE,
     BRANKE_SYMBOL,
-    TERMINAL_STATES,
+    ACCEPT_STATES,
     TAPE_COUNT,
     TRANSITION
   };
@@ -616,7 +616,7 @@ private:
         case TAPE_SYMBOLS: return "Tape Symbols: " + content;
         case INITIAL_STATE: return "Initial State: " + content;
         case BRANKE_SYMBOL: return "Brank Symbol: " + content;
-        case TERMINAL_STATES: return "Terminal States: " + content;
+        case ACCEPT_STATES: return "Accept States: " + content;
         case TAPE_COUNT: return "Tape Count: " + content;
       };
     };
@@ -674,7 +674,7 @@ vector<TM_Wrapper::TM_STATEMENT> TM_Wrapper::lexer(string &content)
             ret.content = line.substr(5);
             break;
           case 'F':
-            ret.type    = tm_space::TM_Wrapper::TERMINAL_STATES;
+            ret.type    = tm_space::TM_Wrapper::ACCEPT_STATES;
             ret.content = line.substr(5);
             break;
           case 'N':
