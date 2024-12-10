@@ -1058,18 +1058,61 @@ void TM_Wrapper::verbose(int step)
   verbose_logger << "Step:" << step << endl;
   verbose_logger << "State: " << state_list[current_state].get_name() << endl;
   for (int i = 0; i < tapes.size(); i++) {
-    verbose_logger << "Tape " << i << ": " << tapes[i].to_string() << endl;
-    int head_pos = tapes[i].get_head_pos();
-    // debug_logger << "Head " << i << ": " << head_pos << endl;
-    verbose_logger << "Head " << i << ": ";
-    for (int j = 0; j < tapes[i].get_length(); j++) {
-      if (j == head_pos) {
-        verbose_logger << "^";
+    string tape_content          = tapes[i].to_string();
+    int    head_pos              = tapes[i].get_head_pos();
+    int    print_start_pos       = 0;
+    bool   find_first_none_blank = false;
+    for (size_t i = 0; i < tape_content.length(); i++) {
+      if (tape_content[i] != blank_symbol) {
+        find_first_none_blank = true;
+        break;
       } else {
-        verbose_logger << " ";
+        print_start_pos++;
       }
     }
-    verbose_logger << endl;
+    if (!find_first_none_blank) {
+      // Here the whole tape is blank. We should print the head only
+      verbose_logger << "Index" << i << " : " << print_start_pos << endl;
+      verbose_logger << "Tape" << i << "  : " << blank_symbol << endl;
+      verbose_logger << "Head" << i << "  : " << "^" << endl;
+    } else {
+      // prepare the true content
+      string true_content = tape_content.substr(print_start_pos);
+      // print index
+      verbose_logger << "Index" << i << " : ";
+      for (size_t i = 0; i < true_content.length(); i++) {
+        verbose_logger << i + print_start_pos << " ";
+      }
+      verbose_logger << endl;
+      // print tape content
+      verbose_logger << "Tape" << i << "  : ";
+      for (char ch : true_content) {
+        verbose_logger << ch << " ";
+      }
+      verbose_logger << endl;
+      // print head
+      verbose_logger << "Head" << i << "  : ";
+      for (int j = 0; j < true_content.length(); j++) {
+        if (j == head_pos - print_start_pos) {
+          verbose_logger << "^ ";
+        } else {
+          verbose_logger << "  ";
+        }
+      }
+      verbose_logger << endl;
+    }
+
+    // verbose_logger << "Tape " << i << ": " << tapes[i].to_string() << endl;
+    // // debug_logger << "Head " << i << ": " << head_pos << endl;
+    // verbose_logger << "Head " << i << ": ";
+    // for (int j = 0; j < tapes[i].get_length(); j++) {
+    //   if (j == head_pos) {
+    //     verbose_logger << "^";
+    //   } else {
+    //     verbose_logger << " ";
+    //   }
+    // }
+    // verbose_logger << endl;
   }
   verbose_logger << BARRIER << endl;
 }
