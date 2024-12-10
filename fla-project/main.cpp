@@ -19,6 +19,7 @@ class Logger
 public:
   Logger() : logToStderr(false) {}
 
+  bool isLogToStderr() { return logToStderr; }
   void setLogToStderr(bool value) { logToStderr = value; }
 
   template <typename T>
@@ -74,6 +75,7 @@ struct Args parse_args(int argc, char *argv[], Logger &logger)
     exit(1);
   }
   Args args;
+  args.verbose     = false;
   bool accept_file = false;
   bool paresd_all  = false;
   for (size_t i = 1; i < argc; i++) {
@@ -473,7 +475,7 @@ private:
   }
 
 private:
-  Logger                     logger;
+  Logger                    &logger;
   vector<char>               input_alphabet;
   vector<char>               stack_alphabet;
   vector<PDA_STATE>          state_list;
@@ -484,7 +486,7 @@ private:
   stack<char>                pda_stack;
 
 public:
-  PDA_Wrapper(Logger logger_) : logger(logger_) {};
+  PDA_Wrapper(Logger &logger_) : logger(logger_) {};
   bool compile(string &pda_content)
   {
     parse_pda(pda_content, logger);
@@ -812,7 +814,7 @@ private:
   int                        current_state;
 
 public:
-  TM_Wrapper(Logger debug_logger_, Logger verbose_logger_)
+  TM_Wrapper(Logger &debug_logger_, Logger &verbose_logger_)
       : debug_logger(debug_logger_), verbose_logger(verbose_logger_) {};
   void compile(string &tm_content);
   void print();
@@ -1147,7 +1149,12 @@ int main(int argc, char *argv[])
   }
   if (content.type == fla::TM) {
     // debug_logger.setLogToStderr(false);
-    tm_space::TM_Wrapper wrapper(debug_logger, debug_logger);
+    Logger verbose_logger;
+    verbose_logger.setLogToStderr(false);
+    if (args.verbose)
+      verbose_logger.setLogToStderr(true);
+    debug_logger.setLogToStderr(false);
+    tm_space::TM_Wrapper wrapper(debug_logger, verbose_logger);
     wrapper.compile(content.content);
     bool success = wrapper.run(args.input);
     if (success) {
