@@ -1055,8 +1055,8 @@ void TM_Wrapper::print() {}
 void TM_Wrapper::verbose(int step)
 {
   // Use the verbose logger to print the runtime information
-  verbose_logger << "Step:" << step << endl;
-  verbose_logger << "State: " << state_list[current_state].get_name() << endl;
+  verbose_logger << "Step   : " << step << endl;
+  verbose_logger << "State  : " << state_list[current_state].get_name() << endl;
   for (int i = 0; i < tapes.size(); i++) {
     string tape_content          = tapes[i].to_string();
     int    head_pos              = tapes[i].get_head_pos();
@@ -1111,18 +1111,6 @@ void TM_Wrapper::verbose(int step)
       }
       verbose_logger << endl;
     }
-
-    // verbose_logger << "Tape " << i << ": " << tapes[i].to_string() << endl;
-    // // debug_logger << "Head " << i << ": " << head_pos << endl;
-    // verbose_logger << "Head " << i << ": ";
-    // for (int j = 0; j < tapes[i].get_length(); j++) {
-    //   if (j == head_pos) {
-    //     verbose_logger << "^";
-    //   } else {
-    //     verbose_logger << " ";
-    //   }
-    // }
-    // verbose_logger << endl;
   }
   verbose_logger << BARRIER << endl;
 }
