@@ -1070,6 +1070,10 @@ void TM_Wrapper::verbose(int step)
         print_start_pos++;
       }
     }
+    if(head_pos < print_start_pos){
+      // Now the head is at the left of the none blank space
+      print_start_pos = head_pos;
+    }
     if (!find_first_none_blank) {
       // Here the whole tape is blank. We should print the head only
       verbose_logger << "Index" << i << " : " << print_start_pos << endl;
