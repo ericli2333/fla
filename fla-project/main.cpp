@@ -816,10 +816,10 @@ private:
 public:
   TM_Wrapper(Logger &debug_logger_, Logger &verbose_logger_)
       : debug_logger(debug_logger_), verbose_logger(verbose_logger_) {};
-  void compile(string &tm_content);
-  void print();
-  void verbose(int step);
-  bool run(string &input);
+  void               compile(string &tm_content);
+  void               print();
+  void               verbose(int step);
+  pair<bool, string> run(string &input);
 
   // implement the TM_Wrapper class here
 };
@@ -1118,7 +1118,7 @@ void TM_Wrapper::verbose(int step)
   }
   verbose_logger << BARRIER << endl;
 }
-bool TM_Wrapper::run(string &input)
+pair<bool, string> TM_Wrapper::run(string &input)
 {
   for (size_t i = 0; i < input.size(); i++) {
     if (!is_valid_input(input[i])) {
@@ -1149,7 +1149,9 @@ bool TM_Wrapper::run(string &input)
       debug_logger << "Transition: " << transition.to_string(state_list) << endl;
     }
     if (transition.to_state == -1) {
-      return success;
+      string str = tapes[0].to_string();
+      str.erase(std::remove(str.begin(), str.end(), blank_symbol), str.end());
+      return make_pair(success, str);
     }
     for (size_t i = 0; i < tapes.size(); i++) {
       tapes[i].write(transition.write_symbols[i]);
@@ -1167,7 +1169,7 @@ bool TM_Wrapper::run(string &input)
     verbose(step_cnt);
     step_cnt++;
   }
-  return success;
+  return make_pair(success, tapes[0].to_string());
 }
 };  // namespace tm_space
 
@@ -1203,12 +1205,8 @@ int main(int argc, char *argv[])
     debug_logger.setLogToStderr(false);
     tm_space::TM_Wrapper wrapper(debug_logger, verbose_logger);
     wrapper.compile(content.content);
-    bool success = wrapper.run(args.input);
-    if (success) {
-      cout << "true" << endl;
-    } else {
-      cout << "false" << endl;
-    }
+    pair<bool, string> ret = wrapper.run(args.input);
+    cout << ret.second << endl;
   } else if (content.type == fla::PDA) {
     pda::PDA_Wrapper wrapper(debug_logger);
     wrapper.compile(content.content);
