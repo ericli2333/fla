@@ -1070,7 +1070,7 @@ void TM_Wrapper::verbose(int step)
         print_start_pos++;
       }
     }
-    if(head_pos < print_start_pos){
+    if (head_pos < print_start_pos) {
       // Now the head is at the left of the none blank space
       print_start_pos = head_pos;
     }
@@ -1127,6 +1127,7 @@ bool TM_Wrapper::run(string &input)
     }
   }
 
+  bool success = false;
   tapes[0].reset(input);
   for (int i = 1; i < tapes.size(); i++) {
     tapes[i].reset("_");
@@ -1134,7 +1135,8 @@ bool TM_Wrapper::run(string &input)
   current_state = initial_state;
   int step_cnt  = 0;
   while (true) {
-    State       &state = state_list[current_state];
+    State &state = state_list[current_state];
+    success      = state.is_accept();
     vector<char> current_tape_symbols;
     for (int i = 0; i < tapes.size(); i++) {
       current_tape_symbols.push_back(tapes[i].read());
@@ -1147,7 +1149,7 @@ bool TM_Wrapper::run(string &input)
       debug_logger << "Transition: " << transition.to_string(state_list) << endl;
     }
     if (transition.to_state == -1) {
-      return state.is_accept();
+      return success;
     }
     for (size_t i = 0; i < tapes.size(); i++) {
       tapes[i].write(transition.write_symbols[i]);
@@ -1165,7 +1167,7 @@ bool TM_Wrapper::run(string &input)
     verbose(step_cnt);
     step_cnt++;
   }
-  return false;
+  return success;
 }
 };  // namespace tm_space
 
