@@ -1150,6 +1150,7 @@ pair<bool, string> TM_Wrapper::run(string &input)
   current_state = initial_state;
   int step_cnt  = 0;
   while (true) {
+    verbose(step_cnt);
     State &state = state_list[current_state];
     success      = state.is_accept();
     vector<char> current_tape_symbols;
@@ -1181,9 +1182,9 @@ pair<bool, string> TM_Wrapper::run(string &input)
       }
     }
     current_state = transition.to_state;
-    verbose(step_cnt);
     step_cnt++;
   }
+  verbose(step_cnt);
   return make_pair(success, tapes[0].to_string());
 }
 };  // namespace tm_space
