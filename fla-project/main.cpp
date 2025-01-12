@@ -12,7 +12,7 @@
 #include <utility>
 using namespace std;
 
-const string BARRIER = "----------------------------------------";
+const string BARRIER = "---------------------------------------------";
 
 class Logger
 {
@@ -1047,7 +1047,7 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
 void TM_Wrapper::compile(string &tm_content)
 {
   debug_logger << "TM content: " << tm_content << endl;
-  auto vec = lexer(tm_content);
+  vector<tm_space::TM_Wrapper::TM_STATEMENT> vec = lexer(tm_content);
   debug_logger << "Start parsing" << endl;
   parse_statement(vec);
 }
@@ -1120,13 +1120,28 @@ void TM_Wrapper::verbose(int step)
 }
 pair<bool, string> TM_Wrapper::run(string &input)
 {
+  verbose_logger << "Input: ";
+  verbose_logger << input << endl;
   for (size_t i = 0; i < input.size(); i++) {
     if (!is_valid_input(input[i])) {
-      cerr << "Illegal input character" << endl;
+      if (verbose_logger.isLogToStderr()) {
+        verbose_logger << "==================== ERR ====================" << endl;
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg), "error: '%c' was not declared in the set of input symbols", input[i]);
+        verbose_logger << "Input: " << input << endl;
+        for (size_t pos = 0; pos < 7 + i; pos++) {
+          verbose_logger << ' ';
+        }
+        verbose_logger << "^\n";
+        verbose_logger << "==================== END ====================" << endl;
+      } else {
+        cerr << "Illegal input character" << endl;
+      }
       exit(EXIT_FAILURE);
     }
   }
 
+  verbose_logger << "==================== RUN ====================" << endl;
   bool success = false;
   tapes[0].reset(input);
   for (int i = 1; i < tapes.size(); i++) {
