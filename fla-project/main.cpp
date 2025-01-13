@@ -1246,7 +1246,11 @@ int main(int argc, char *argv[])
     tm_space::TM_Wrapper wrapper(debug_logger, verbose_logger);
     wrapper.compile(content.content);
     pair<bool, string> ret = wrapper.run(args.input);
-    cout << ret.second << endl;
+    if (verbose_logger.isLogToStderr()) {
+      cout << "Result: " << ret.second << endl;
+      cout << "==================== END ====================" << endl;
+    } else
+      cout << ret.second << endl;
   } else if (content.type == fla::PDA) {
     pda::PDA_Wrapper wrapper(debug_logger);
     wrapper.compile(content.content);
