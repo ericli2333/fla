@@ -5,6 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "tm 1001001",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "输入程序名称，例如 ${workspaceFolder}/bin/Debug/fla.exe",
+            "args": [
+                "./tm/palindrome_detector_2tapes.tm",
+                "1001001",
+                "-v"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "pipeTransport": {
+                "debuggerPath": "/usr/bin/gdb",
+                "pipeProgram": "${env:windir}\\system32\\bash.exe",
+                "pipeArgs": [
+                    "-c"
+                ],
+                "pipeCwd": ""
+            },
+        },
+        {
             "name": "fla iad.tm",
             "type": "cppdbg",
             "request": "launch",
@@ -20,6 +43,5 @@
             "externalConsole": false,
             "MIMode": "lldb"
         }
-
     ]
 }

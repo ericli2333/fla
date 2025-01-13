@@ -657,10 +657,11 @@ private:
   private:
     list<char>           tape_;
     list<char>::iterator head_;
+    list<char>::iterator zero_;
     char                 blank_symbol;
 
   public:
-    Tape(char blank_symbol) : blank_symbol(blank_symbol), head_(tape_.begin()) {};
+    Tape(char blank_symbol) : blank_symbol(blank_symbol), head_(tape_.begin()), zero_(tape_.begin()) {};
     void reset(const string &str)
     {
       tape_.clear();
@@ -668,6 +669,7 @@ private:
         tape_.push_back(ch);
       }
       head_ = tape_.begin();
+      zero_ = tape_.begin();
     }
     void move_left()
     {
@@ -693,6 +695,14 @@ private:
     {
       int ret = 0;
       for (auto it = tape_.begin(); it != head_; it++) {
+        ret++;
+      }
+      return ret;
+    }
+    int get_zero_position()
+    {
+      int ret = 0;
+      for (auto it = tape_.begin(); it != zero_; it++) {
         ret++;
       }
       return ret;
@@ -1060,6 +1070,7 @@ void TM_Wrapper::verbose(int step)
   for (int i = 0; i < tapes.size(); i++) {
     string tape_content          = tapes[i].to_string();
     int    head_pos              = tapes[i].get_head_pos();
+    int    zero_pos              = tapes[i].get_zero_position();
     int    print_start_pos       = 0;
     bool   find_first_none_blank = false;
     for (int i = 0; i < tape_content.length(); i++) {
@@ -1074,9 +1085,12 @@ void TM_Wrapper::verbose(int step)
       // Now the head is at the left of the none blank space
       print_start_pos = head_pos;
     }
+    int base_idx = print_start_pos - zero_pos;
     if (!find_first_none_blank) {
       // Here the whole tape is blank. We should print the head only
-      verbose_logger << "Index" << i << " : " << print_start_pos << endl;
+      int idx = base_idx;
+      idx     = idx < 0 ? -idx : idx;
+      verbose_logger << "Index" << i << " : " << idx << endl;
       verbose_logger << "Tape" << i << "  : " << blank_symbol << endl;
       verbose_logger << "Head" << i << "  : " << "^" << endl;
     } else {
@@ -1085,13 +1099,20 @@ void TM_Wrapper::verbose(int step)
       // print index
       verbose_logger << "Index" << i << " : ";
       for (int i = 0; i < true_content.length(); i++) {
-        verbose_logger << i + print_start_pos << " ";
+        int idx = i + base_idx;
+        if (idx < 0) {
+          idx = -idx;
+        }
+        verbose_logger << idx << " ";
       }
       verbose_logger << endl;
       // print tape content
       verbose_logger << "Tape" << i << "  : ";
       for (int j = 0; j < true_content.size(); j++) {
-        int idx        = j + print_start_pos;
+        int idx = i + base_idx;
+        if (idx < 0) {
+          idx = -idx;
+        }
         int blank_size = std::to_string(idx).size();
         verbose_logger << true_content[j];
         for (int k = 0; k < blank_size; k++) {
@@ -1107,7 +1128,10 @@ void TM_Wrapper::verbose(int step)
         } else {
           verbose_logger << " ";
         }
-        int idx        = j + print_start_pos;
+        int idx = i + base_idx;
+        if (idx < 0) {
+          idx = -idx;
+        }
         int blank_size = std::to_string(idx).size();
         for (int k = 0; k < blank_size; k++) {
           verbose_logger << " ";
