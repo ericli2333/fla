@@ -1141,8 +1141,8 @@ void TM_Wrapper::verbose(int step)
       string true_content = tape_content.substr(print_start_pos);
       // print index
       verbose_logger << "Index" << i << " : ";
-      for (int i = 0; i < print_length; i++) {
-        int idx = i + base_idx;
+      for (int j = 0; j < print_length; j++) {
+        int idx = j + base_idx;
         if (idx < 0) {
           idx = -idx;
         }
@@ -1152,7 +1152,7 @@ void TM_Wrapper::verbose(int step)
       // print tape content
       verbose_logger << "Tape" << i << "  : ";
       for (int j = 0; j < print_length; j++) {
-        int idx = i + base_idx;
+        int idx = j + base_idx;
         if (idx < 0) {
           idx = -idx;
         }
@@ -1171,7 +1171,7 @@ void TM_Wrapper::verbose(int step)
         } else {
           verbose_logger << " ";
         }
-        int idx = i + base_idx;
+        int idx = j + base_idx;
         if (idx < 0) {
           idx = -idx;
         }
