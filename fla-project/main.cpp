@@ -1223,7 +1223,15 @@ pair<bool, string> TM_Wrapper::run(string &input)
     }
     if (transition.to_state == -1) {
       string str = tapes[0].to_string();
-      str.erase(std::remove(str.begin(), str.end(), blank_symbol), str.end());
+      string::iterator start = str.begin();
+      string::iterator end = str.end();
+      while(start != str.end() && *start == blank_symbol) {
+        start++;
+      }
+      while(end != start && *(end - 1) == blank_symbol) {
+        end--;
+      }
+      str = string(start, end);
       return make_pair(success, str);
     }
     for (size_t i = 0; i < tapes.size(); i++) {
@@ -1242,6 +1250,7 @@ pair<bool, string> TM_Wrapper::run(string &input)
     step_cnt++;
   }
   verbose(step_cnt);
+  string ret_str = tapes[0].to_string();
   return make_pair(success, tapes[0].to_string());
 }
 };  // namespace tm_space
