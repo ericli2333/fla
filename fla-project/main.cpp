@@ -26,7 +26,7 @@ public:
   Logger &operator<<(const T &message)
   {
     if (logToStderr) {
-      cerr << message;
+      cout << message;
     } else {
       // No output here
     }
@@ -36,7 +36,7 @@ public:
   Logger &operator<<(std::ostream &(*manip)(std::ostream &))
   {
     if (logToStderr) {
-      manip(cerr);
+      manip(cout);
     } else {
       // No output here
     }
@@ -768,17 +768,27 @@ private:
     };
     struct Transition get_transition(vector<char> tap_sympols)
     {
-
-      unordered_map<vector<char>, Transition, vector_hash>::iterator it = transition_map.find(tap_sympols);
-      if (transition_map.empty() || it == transition_map.end()) {
-        // return invalid transition
-        Transition trans;
-        trans.to_state = -1;
-        return trans;
-      } else {
-        // case 2
-        return it->second;
+      for (unordered_map<vector<char>, Transition, vector_hash>::iterator it = transition_map.begin();
+           it != transition_map.end();
+           it++) {
+        Transition    trans(it->second);
+        vector<char> &write_symbols = trans.write_symbols;
+        for (int i = 0; i < it->first.size(); i++) {
+          if (it->first[i] != '*' && it->first[i] != tap_sympols[i]) {
+            break;
+          } else if (it->first[i] == '*') {
+            if (write_symbols[i] == '*') {
+              write_symbols[i] = tap_sympols[i];
+            }
+          }
+          if (i == it->first.size() - 1) {
+            return trans;
+          }
+        }
       }
+      Transition trans;
+      trans.to_state = -1;
+      return trans;
     };
     string to_string(vector<State> &state_list)
     {
@@ -1222,13 +1232,13 @@ pair<bool, string> TM_Wrapper::run(string &input)
       debug_logger << "Transition: " << transition.to_string(state_list) << endl;
     }
     if (transition.to_state == -1) {
-      string str = tapes[0].to_string();
+      string           str   = tapes[0].to_string();
       string::iterator start = str.begin();
-      string::iterator end = str.end();
-      while(start != str.end() && *start == blank_symbol) {
+      string::iterator end   = str.end();
+      while (start != str.end() && *start == blank_symbol) {
         start++;
       }
-      while(end != start && *(end - 1) == blank_symbol) {
+      while (end != start && *(end - 1) == blank_symbol) {
         end--;
       }
       str = string(start, end);
