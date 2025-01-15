@@ -1043,6 +1043,23 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
         string error = "Invalid transition statement: " + statement.content;
         throw runtime_error(error);
       }
+      debug_logger << "Old state: " << old_state << endl;
+      debug_logger << "Old tape symbols: ";
+      for (char ch : old_tape_symbols) {
+        debug_logger << ch << " ";
+      }
+      debug_logger << endl;
+      debug_logger << "New state: " << new_state << endl;
+      debug_logger << "New tape symbols: ";
+      for (char ch : new_tape_symbols) {
+        debug_logger << ch << " ";
+      }
+      debug_logger << endl;
+      debug_logger << "Move directions: ";
+      for (char ch : move_directions) {
+        debug_logger << ch << " ";
+      }
+      debug_logger << endl;
       auto it = state_map.find(old_state);
       if (it == state_map.end()) {
         string error = "State not found: " + old_state;
