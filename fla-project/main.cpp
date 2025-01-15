@@ -1124,7 +1124,8 @@ void TM_Wrapper::verbose(int step)
       idx     = idx < 0 ? -idx : idx;
       verbose_logger << "Index" << i << " : " << idx << endl;
       verbose_logger << "Tape" << i << "  : " << blank_symbol << endl;
-      verbose_logger << "Head" << i << "  : " << "^" << endl;
+      verbose_logger << "Head" << i << "  : "
+                     << "^" << endl;
     } else {
       // prepare the true content
       string true_content = tape_content.substr(print_start_pos);
@@ -1191,7 +1192,7 @@ pair<bool, string> TM_Wrapper::run(string &input)
         verbose_logger << "^\n";
         verbose_logger << "==================== END ====================" << endl;
       } else {
-        cerr << "Illegal input character" << endl;
+        cerr << "Illegal input" << endl;
       }
       exit(EXIT_FAILURE);
     }
