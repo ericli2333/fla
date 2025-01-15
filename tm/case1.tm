@@ -36,7 +36,7 @@ move_error ___ a__ l** move_error
 move_error a__ a__ l** move_error1
 move_error1 a__ a__ l** move_error1
 move_error1 ___ ___ r** clear_error
-clear_error a__ ___ r** clear_error
+clear_error *__ ___ r** clear_error
 clear_error ___ ___ *** i
 
 ; write illegal_input to the first tape
