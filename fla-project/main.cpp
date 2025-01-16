@@ -777,6 +777,9 @@ private:
           if (it->first[i] != '*' && it->first[i] != tap_sympols[i]) {
             break;
           } else if (it->first[i] == '*') {
+            if (tap_sympols[i] == '_') {
+              break;
+            }
             if (write_symbols[i] == '*') {
               write_symbols[i] = tap_sympols[i];
             }
