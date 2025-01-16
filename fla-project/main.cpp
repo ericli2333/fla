@@ -190,36 +190,54 @@ private:
       // Here is the first six cases
       switch (input[1]) {
         case 'Q':
+          if (input.back() != '}' || input.length() <= 6 || input[5] != '{') {
+            cerr << "syntax error" << endl;
+            exit(-1);
+          }
           ret.type    = STATES;
           ret.content = input.substr(5);
           break;
         case 'S':
+          if (input.back() != '}' || input.length() <= 6 || input[5] != '{') {
+            cerr << "syntax error" << endl;
+            exit(-1);
+          }
           ret.type    = INPUT_ALPHABET;
           ret.content = input.substr(5);
           break;
         case 'G':
+          if (input.back() != '}' || input.length() <= 6 || input[5] != '{') {
+            cerr << "syntax error" << endl;
+            exit(-1);
+          }
           ret.type    = STACK_SYMBOLS;
           ret.content = input.substr(5);
           break;
         case 'q':
-          if (input[2] != '0') {
-            throw runtime_error("Invalid statement");
+          if (input[2] != '0' || input.length() < 7) {
+            cerr << "syntax error" << endl;
+            exit(-1);
           }
           ret.type    = INITIAL_STATE;
           ret.content = input.substr(6);
           break;
         case 'z':
-          if (input[2] != '0') {
-            throw runtime_error("Invalid statement");
+          if (input[2] != '0' || input.length() < 7) {
+            cerr << "syntax error" << endl;
+            exit(-1);
           }
           ret.type    = STACK_INITIAL_SYMBOL;
           ret.content = input.substr(6);
           break;
         case 'F':
+          if (input.back() != '}' || input.length() <= 6 || input[5] != '{') {
+            cerr << "syntax error" << endl;
+            exit(-1);
+          }
           ret.type    = FINAL_STATES;
           ret.content = input.substr(5);
           break;
-        default: throw runtime_error("Invalid statement");
+        default: cerr << "syntax error" << endl; exit(-1);
       }
     } else {
       ret.type    = TRANSITION;
@@ -353,8 +371,8 @@ private:
         string       character;
         while (getline(ss, character, ',')) {
           if (character.size() != 1) {
-            string error = "Invalid character: " + character;
-            throw runtime_error(error);
+            cerr << "syntax error" << endl;
+            exit(-1);
           }
           input_alphabet.push_back(character[0]);
         }
@@ -371,8 +389,8 @@ private:
         string       character;
         while (getline(ss, character, ',')) {
           if (character.size() != 1) {
-            string error = "Invalid character: " + character;
-            throw runtime_error(error);
+            cerr << "syntax error" << endl;
+            exit(-1);
           }
           stack_alphabet.push_back(character[0]);
         }
@@ -402,8 +420,8 @@ private:
         while (getline(ss, str, ',')) {
           auto it = state_map.find(str);
           if (it == state_map.end()) {
-            string error = "State not found: " + str;
-            throw runtime_error(error);
+            cerr << "syntax error" << endl;
+            exit(-1);
           }
           state_list[it->second].set_accept(true);
         }
@@ -418,8 +436,8 @@ private:
           transition_parts.push_back(transition_part);
         }
         if (transition_parts.size() != 5) {
-          string error = "Invalid transition statement: " + statement.content;
-          throw runtime_error(error);
+          cerr << "syntax error" << endl;
+          exit(-1);
         }
         string input_state  = transition_parts[0];
         string input_char   = transition_parts[1];
