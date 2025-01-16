@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <list>
 #include <stack>
 #include <string>
@@ -864,37 +865,85 @@ vector<TM_Wrapper::TM_STATEMENT> TM_Wrapper::lexer(string &content)
         // Here is the first six cases
         switch (line[1]) {
           case 'Q':
-            ret.type    = tm_space::TM_Wrapper::STATES;
+            if (line[5] != '{') {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
+            ret.type = tm_space::TM_Wrapper::STATES;
+            if (line.size() < 5) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(5);
             break;
           case 'S':
-            ret.type    = tm_space::TM_Wrapper::INPUT_ALPHABET;
+            if (line[5] != '{') {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
+            ret.type = tm_space::TM_Wrapper::INPUT_ALPHABET;
+            if (line.size() < 5) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(5);
             break;
           case 'G':
-            ret.type    = tm_space::TM_Wrapper::TAPE_SYMBOLS;
+            if (line[5] != '{') {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
+            ret.type = tm_space::TM_Wrapper::TAPE_SYMBOLS;
+            if (line.size() < 5) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(5);
             break;
           case 'q':
             if (line[2] != '0') {
-              throw runtime_error("Invalid statement");
+              cerr << "syntax error" << endl;
+              exit(-1);
             }
-            ret.type    = tm_space::TM_Wrapper::INITIAL_STATE;
+            ret.type = tm_space::TM_Wrapper::INITIAL_STATE;
+            if (line.size() < 6) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(6);
             break;
           case 'B':
-            ret.type    = tm_space::TM_Wrapper::BRANKE_SYMBOL;
+            ret.type = tm_space::TM_Wrapper::BRANKE_SYMBOL;
+            if (line.size() < 5) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(5);
             break;
           case 'F':
-            ret.type    = tm_space::TM_Wrapper::ACCEPT_STATES;
+            ret.type = tm_space::TM_Wrapper::ACCEPT_STATES;
+            if (line.size() < 5) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(5);
             break;
           case 'N':
-            ret.type    = tm_space::TM_Wrapper::TAPE_COUNT;
+            ret.type = tm_space::TM_Wrapper::TAPE_COUNT;
+            if (line.size() < 5) {
+              cerr << "syntax error" << endl;
+              exit(-1);
+            }
             ret.content = line.substr(5);
             break;
-          default: throw runtime_error("Invalid statement");
+          default: cerr << "syntax error" << endl; exit(-1);
+        }
+        if (ret.content.empty() ||
+            ((ret.type != tm_space::TM_Wrapper::TAPE_COUNT && ret.type != tm_space::TM_Wrapper::BRANKE_SYMBOL &&
+                 ret.type != tm_space::TM_Wrapper::INITIAL_STATE) &&
+                ret.content.back() != '}')) {
+          cerr << "syntax error" << endl;
+          exit(-1);
         }
       } else {
         ret.type    = TRANSITION;
@@ -908,6 +957,10 @@ vector<TM_Wrapper::TM_STATEMENT> TM_Wrapper::lexer(string &content)
 }
 void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
 {
+  if (statement.content.empty()) {
+    cerr << "syntax error" << endl;
+    exit(-1);
+  }
   switch (statement.type) {
     case STATES: {
       debug_logger << "States: " << statement.content << endl;
@@ -916,7 +969,8 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
       string       state;
       while (getline(ss, state, ',')) {
         if (state_map.find(state) != state_map.end()) {
-          throw runtime_error("State already exists: " + state);
+          cerr << "syntax error" << endl;
+          exit(-1);
         }
         State st = State(state);
         state_list.push_back(st);
@@ -934,7 +988,8 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
       string       character;
       while (getline(ss, character, ',')) {
         if (character.size() != 1) {
-          throw runtime_error("Invalid character: " + character);
+          cerr << "syntax error" << endl;
+          exit(-1);
         }
         input_alphabet.push_back(character[0]);
       }
@@ -952,7 +1007,8 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
       string       character;
       while (getline(ss, character, ',')) {
         if (character.size() != 1) {
-          throw runtime_error("Invalid character: " + character);
+          cerr << "syntax error" << endl;
+          exit(-1);
         }
         tape_alphabet.push_back(character[0]);
       }
@@ -965,7 +1021,12 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
     }
     case INITIAL_STATE: {
       debug_logger << "Initial State: " << statement.content << endl;
-      initial_state = state_map[statement.content];
+      auto it = state_map.find(statement.content);
+      if (it == state_map.end()) {
+        cerr << "syntax error" << endl;
+        exit(-1);
+      }
+      initial_state = it->second;
       debug_logger << "parsed Initial state: " << state_list[initial_state].to_string(state_list) << endl;
       break;
     }
@@ -984,8 +1045,8 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
       while (getline(ss, str, ',')) {
         auto it = state_map.find(str);
         if (it == state_map.end()) {
-          string error = "State not found: " + str;
-          throw runtime_error(error);
+          cerr << "syntax error" << endl;
+          exit(-1);
         }
         state_list[it->second].set_accept(true);
       }
@@ -996,7 +1057,15 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
     }
     case TAPE_COUNT: {
       debug_logger << "Tape Count: " << statement.content << endl;
+      if (!std::all_of(statement.content.begin(), statement.content.end(), ::isdigit)) {
+        cerr << "syntax error" << endl;
+        exit(-1);
+      }
       int tape_cnt = stoi(statement.content);
+      if (tape_cnt <= 0) {
+        cerr << "syntax error" << endl;
+        exit(-1);
+      }
       for (int i = 0; i < tape_cnt; i++) {
         tapes.emplace_back(blank_symbol);
       }
@@ -1053,8 +1122,8 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
         cnt++;
       }
       if (cnt != 6) {
-        string error = "Invalid transition statement: " + statement.content;
-        throw runtime_error(error);
+        cerr << "syntax error" << endl;
+        exit(-1);
       }
       debug_logger << "Old state: " << old_state << endl;
       debug_logger << "Old tape symbols: ";
@@ -1075,8 +1144,8 @@ void TM_Wrapper::parse_statement_(TM_STATEMENT &statement)
       debug_logger << endl;
       auto it = state_map.find(old_state);
       if (it == state_map.end()) {
-        string error = "State not found: " + old_state;
-        throw runtime_error(error);
+        cerr << "syntax error" << endl;
+        exit(-1);
       }
       state_list[it->second].add_transition(old_tape_symbols, state_map[new_state], new_tape_symbols, move_directions);
       break;
