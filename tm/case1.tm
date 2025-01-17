@@ -2,7 +2,7 @@
 ; Input: a string of 0's and 1's, e.g. '1001001'
 
 ; the finite set of states
-#Q = {cp,cpb,ml,movel,mover,copy,accept,clear,move_error,move_error1,clear_error,i,il,ill,ille,illeg,illega,illegal,illegal_,illegal_i,illegal_in,illegal_inp,illegal_inpu,illegal_input,halt,error}
+#Q = {ck,ckb,cp,cleara,cpb,ml,movel,mover,copy,accept,clear,move_error,move_error1,clear_error,i,il,ill,ille,illeg,illega,illegal,illegal_,illegal_i,illegal_in,illegal_inp,illegal_inpu,illegal_input,halt,error}
 
 ; the finite set of input symbols
 #S = {a,b}
@@ -11,7 +11,7 @@
 #G = {a,b,c,i,l,e,g,p,n,u,t,_}
 
 ; the start state
-#q0 = cp
+#q0 = ck
 
 ; the blank symbol
 #B = _
@@ -24,9 +24,19 @@
 
 ; the transition functions
 
-;copy transitions
+; ck transitions: check if begin with b directly
+ck a__ a__ *** cp
+ck b__ ___ r** ckb
+ckb b__ ___ r** ckb
+ckb ___ ___ *** accept
+ckb a__ ___ r** clear_error
+
+; copy transitions
 cp a__ a__ r** cp
 cp b__ _b_ rr* cpb
+cp ___ ___ l** cleara
+cleara a__ ___ l** cleara
+cleara ___ ___ *** accept
 cpb b__ _b_ rr* cpb
 cpb a__ a__ l** move_error
 cpb ___ ___ ll* movel
