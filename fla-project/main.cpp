@@ -1285,7 +1285,8 @@ pair<bool, string> TM_Wrapper::run(string &input)
         verbose_logger << "==================== ERR ====================" << endl;
         char error_msg[100];
         snprintf(error_msg, sizeof(error_msg), "error: '%c' was not declared in the set of input symbols", input[i]);
-        verbose_logger << "Input: " << input << endl;
+        cerr << error_msg << endl;
+        cerr << "Input: " << input << endl;
         for (size_t pos = 0; pos < 7 + i; pos++) {
           verbose_logger << ' ';
         }
