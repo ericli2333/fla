@@ -1,59 +1,151 @@
-# 样例框架说明
+# TM / PDA Simulator
+This is a simple simulator for Turing Machines (TM) and Pushdown Automata (PDA).
 
-本框架为2024年秋季《形式语言与自动机》课程的样例框架。助教们将使用该框架对同学们的程序进行测试，因此请确保你的工程可以使用该框架编译。
+# Compile
+Use the following command to compile the code:
+```bash
+cmake -S . -B build
+cmake --build build
+```
+to compile.
 
-## 软件依赖
+The binary file will be in the `bin/` directory.
 
-本框架依赖于cmake进行编译，需安装3.13.0以上版本的cmake方可使用。
+# PDA Simulator
 
-## 使用方法
-
-将文件打包为如下结构：
-
-```plain
-学号_姓名_FLA24proj.zip
-    |- CMakeLists.txt
-    |- README.md
-    |- fla-project
-        |- main.cpp
-        |- ...
-    |- pda
-        |- case.pda
-    |- tm
-        |- case1.tm
-        |- case2.tm
+## Usage
+```bash
+./bin/fla <path_to_grammar_file> input_string
 ```
 
-而非：
+## Gramma
 
-```plain
-学号_姓名_FLA24proj.zip
-    |- 学号_姓名_FLA24proj
-        |- CMakeLists.txt
-        |- README.md
-        |- fla-project
-            |- main.cpp
-            |- xxx
-        |- pda
-            |- case.pda
-        |- tm
-            |- case1.tm
-            |- case2.tm
+### State Definition
+
+Using 
+```txt
+#Q = {q0, q1, q2, ...}
+```
+to define the set of states.
+### Input Alphabet
+Using 
+```txt
+#S = {a, b, c, ...}
+```
+to define the set of input symbols.
+### Stack Alphabet
+Using 
+```txt
+#G = {a, b, c, ...}
+```
+to define the set of stack symbols.
+### Initial State
+Using 
+```txt
+#q0 = q_init
+```
+to define the initial state.
+### Stack Start Symbol
+Using 
+```txt
+#z0 = z
+```
+to define the stack start symbol.
+### Final State
+Using 
+```txt
+#F = {q_accept, q_reject}
+```
+to define the set of final states.
+### Transition Function
+Taking 
+```txt
+q 0 Z q1 XXZ
+```
+as an example, the transition function is defined as follows:
+- The first symbol is the current state, which is `q` in this case.
+- The second symbol is the current input symbol, which is `0` in this case.
+- The third symbol is the current stack symbol, which is `Z` in this case.
+- The fourth symbol is the next state, which is `q1` in this case.
+- The fifth symbol is the stack symbol to be pushed to the stack, which means the top of the stack would be `XXZ` in this case.
+
+> If the input symbol is $\epsilon$ use `_` to represent it.
+
+### Comment
+The line starting with `;` will be ignored.
+
+# TM Simulator
+
+## Usage
+```bash
+./bin/fla <path_to_to_grammar_file> input_string
 ```
 
-本框架的使用方法为：
+If you want to use the verbose mode, you can add the `-v` option:
+```bash
+./bin/fla -v <path_to_grammar_file> input_string
+```
+The verbose mode will print the current state, the current input symbol, the current tape status, and the current head position.
 
-1. 将所有`.h` 以及`.cpp`文件置于`/fla-project`文件夹下，或者将该框架的`CMakeLists.txt`复制至你的工程根目录
-2. 在工程根目录处，使用指令`cmake -B build`
-3. 在工程根目录处，使用指令`cd ./build; make`
+## Gramma
 
-测试框架将使用上述方法对工程进行编译。执行完毕后，在工程根目录下应当出现`/bin`文件夹，其中含有可执行文件`fla`，测试框架将对该可执行文件进行测试。
+### State Definition
 
-**重点**：提交时，你的工程根目录下应当有一个`CMakeLists.txt`文件用于指导cmake进行编译，且通过这种方式能够在`/bin`文件夹下生成可执行文件`fla`。
+Using 
+```txt
+#Q = {q0, q1, q2, ...}
+```
+to define the set of states.
+### Input Alphabet
+Using 
+```txt
+#S = {a, b, c, ...}
+```
+to define the set of input symbols.
+### Tape Alphabet
+Using 
+```txt
+#G = {a, b, c, ...}
+```
+to define the set of tape symbols.
+### Initial State
+Using 
+```txt
+#q0 = q_init
+```
+to define the initial state.
+### Blank Symbol
+Using 
+```txt
+#B = _
+```
+to define the blank symbol. **The symbol _ refers to blank**
+### Tape Number
+Using 
+```txt
+#N = 2
+```
+to define the number of tapes.
 
-## 编译测试
-
-将工程根目录直接打包为一个`.zip`文件
-Windows用户在命令行中输入：`curl.exe -X POST -F "file=@学号_姓名_FLA24proj.zip" http://114.212.84.155:5000/upload`
-MacOS/Linux用户在命令行中输入：`curl -X POST -F "file=@学号_姓名_FLA24proj.zip" http://114.212.84.155:5000/upload`
-以获取编译结果。**该页面仅用于测试工程编译可行性，不是正式提交入口！正式提交方式以讲义为准！**
+### Final State
+Using 
+```txt
+#F = {q_accept, q_reject}
+```
+to define the set of final states.
+### Transition Function
+Taking 
+```txt
+q 01 __ rl reject
+```
+as an example, the transition function is defined as follows:
+- The first symbol is the current state, which is `q` in this case.
+- The second symbol is the current tape symbols , which means the first tape has `0` and the second tape has `1`.
+- The third symbol is the tape symbols afterwards, which means the first tape has `_` and the second tape has `_`.
+- The fourth symbol is the direction of the head, which is `rl` in this case. The first head will move to the right and the second head will move to the left.
+- The fifth symbol is the next state, which is `reject` in this case.
+> If the input symbol is $\epsilon$ use `_` to represent it.
+> You can use `*` to represent any symbol in the tape alphabet. 
+ 
+### Comment
+The line starting with `;` will be ignored.
